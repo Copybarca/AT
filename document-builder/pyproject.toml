@@ -1,0 +1,47 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "document-builder"
+version = "0.1.0"
+description = "Backend API for book layout and PDF document generation"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "babel",
+    "cairosvg",
+    "fastapi",
+    "fonttools",
+    "jinja2",
+    "markdown",
+    "pillow",
+    "pydantic-settings",
+    "pypdf",
+    "python-multipart",
+    "reportlab",
+    "uvicorn[standard]",
+    "weasyprint",
+]
+
+[dependency-groups]
+dev = [
+    "httpx",
+    "mypy",
+    "pytest",
+    "pytest-asyncio",
+    "ruff",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/document_builder"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

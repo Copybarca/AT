@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: trans-api
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/data}
+    username: ${DB_USER:data}
+    password: ${DB_PASSWORD:data}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        default_schema: trans
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

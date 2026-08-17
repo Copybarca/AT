@@ -1,0 +1,54 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "trans-flow"
+version = "0.1.0"
+description = "Local LLM translation workflows and agents"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "accelerate",
+    "huggingface-hub",
+    "langchain",
+    "langchain-community",
+    "langchain-ollama",
+    "langgraph",
+    "lingua-language-detector",
+    "ollama",
+    "pydantic-settings",
+    "sacrebleu",
+    "safetensors",
+    "sentence-splitter",
+    "sentencepiece",
+    "torch",
+    "transformers",
+]
+
+[project.optional-dependencies]
+llama-cpp = ["llama-cpp-python"]
+quantization = [
+    "bitsandbytes; platform_system == 'Linux' and platform_machine == 'x86_64'",
+]
+
+[dependency-groups]
+dev = [
+    "mypy",
+    "pytest",
+    "pytest-asyncio",
+    "ruff",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/trans_flow"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

@@ -1,0 +1,33 @@
+# IDE and OS files
+.idea/
+.vscode/
+.DS_Store
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+dist/
+build/
+*.egg-info/
+
+# Java and Maven
+target/
+*.class
+hs_err_pid*
+
+# Generated documents and local models
+data/
+models/
+output/
+*.pdf
