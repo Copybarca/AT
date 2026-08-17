@@ -6,10 +6,13 @@ spring:
     username: ${DB_USER:data}
     password: ${DB_PASSWORD:data}
     driver-class-name: org.postgresql.Driver
+  liquibase:
+    change-log: classpath:/db/changelog/cumulative/db.changelog-cumulative.sql
+    default-schema: public
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: none
+      ddl-auto: validate
     properties:
       hibernate:
         default_schema: trans

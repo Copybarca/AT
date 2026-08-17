@@ -42,6 +42,8 @@ schema=trans
 
 Для другого окружения используются переменные `DB_URL`, `DB_USER` и `DB_PASSWORD`.
 
+Схема `trans` создаётся и обновляется Liquibase при старте приложения. Cumulative migration находится в `src/main/resources/db/changelog/cumulative/db.changelog-cumulative.sql`; JPA только валидирует готовую схему.
+
 Настройки S3 и внешних REST API находятся в `application.yaml` и переопределяются environment variables. Для S3-совместимого хранилища доступны `S3_ENDPOINT` и `S3_PATH_STYLE_ACCESS`.
 
 ## Docker
@@ -59,3 +61,19 @@ docker run --rm \
   -e DB_PASSWORD=data \
   trans-api
 ```
+
+## Docker Compose
+
+`compose.yaml` поднимает отдельный локальный стек без конфликта с PostgreSQL на `5433`. PostgreSQL стартует пустым, а схему создаёт Liquibase из `trans-api`:
+
+- `trans-api` — `127.0.0.1:8080`;
+- PostgreSQL — `127.0.0.1:5434`;
+- MinIO S3 API — `127.0.0.1:9000`;
+- MinIO Console — `127.0.0.1:9001`.
+
+```bash
+docker compose up --build -d
+docker compose ps
+```
+
+Все значения имеют локальные defaults и переопределяются environment variables. URL внешних сервисов задаются через `PDF_EXTRACTOR_BASE_URL`, `PDF_BUILDER_BASE_URL` и `AGENT_FLOW_BASE_URL`.

@@ -1,0 +1,170 @@
+# Задаёт стабильное имя Compose-проекта для контейнеров, сети и volumes.
+name: at-trans-api
+
+# Объявляет инфраструктурные и прикладные сервисы локального окружения.
+services:
+  # Хранит метаданные книг, сегментов и переводов.
+  postgres:
+    # Фиксирует PostgreSQL 16 на компактном Alpine-образе.
+    image: postgres:16-alpine
+    # Передаёт стандартные параметры первичной инициализации PostgreSQL.
+    environment:
+      # Создаёт базу data или базу с именем из DB_NAME.
+      POSTGRES_DB: ${DB_NAME:-data}
+      # Создаёт пользователя data или пользователя из DB_USER.
+      POSTGRES_USER: ${DB_USER:-data}
+      # Устанавливает пароль data или пароль из DB_PASSWORD.
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-data}
+    # Открывает PostgreSQL только на loopback-интерфейсе ноутбука.
+    ports:
+      # Использует 5434, чтобы не конфликтовать с существующей БД на 5433.
+      - "127.0.0.1:${COMPOSE_DB_PORT:-5434}:5432"
+    # Подключает постоянное хранилище данных PostgreSQL.
+    volumes:
+      # Сохраняет данные PostgreSQL между перезапусками Compose.
+      - trans-postgres-data:/var/lib/postgresql/data
+    # Проверяет готовность базы принимать подключения.
+    healthcheck:
+      # Вызывает штатную утилиту PostgreSQL с переменными контейнера.
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      # Запускает проверку каждые пять секунд.
+      interval: 5s
+      # Ограничивает одну проверку тремя секундами.
+      timeout: 3s
+      # Даёт PostgreSQL до двадцати попыток на запуск.
+      retries: 20
+    # Автоматически возвращает базу после перезапуска Docker.
+    restart: unless-stopped
+
+  # Предоставляет локальное S3-совместимое объектное хранилище.
+  minio:
+    # Фиксирует проверенную версию MinIO вместо плавающего latest.
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    # Запускает S3 API на 9000 и встроенную web-консоль на 9001.
+    command: server /data --console-address ":9001"
+    # Передаёт административные credentials локального MinIO.
+    environment:
+      # Использует access key из окружения или локальное значение minioadmin.
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
+      # Использует secret key из окружения или локальное значение minioadmin.
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin}
+    # Публикует S3 API и консоль только на loopback-интерфейсе.
+    ports:
+      # Публикует S3 API на локальном порту 9000 по умолчанию.
+      - "127.0.0.1:${MINIO_API_PORT:-9000}:9000"
+      # Публикует MinIO Console на локальном порту 9001 по умолчанию.
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
+    # Подключает постоянное хранилище объектов.
+    volumes:
+      # Сохраняет загруженные файлы между перезапусками Compose.
+      - trans-minio-data:/data
+    # Автоматически возвращает MinIO после перезапуска Docker.
+    restart: unless-stopped
+
+  # Однократно создаёт S3 bucket перед запуском Java API.
+  minio-init:
+    # Использует официальный MinIO Client с зафиксированной версией.
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
+    # Запускается только после старта контейнера MinIO.
+    depends_on:
+      # Указывает сервер MinIO как обязательную зависимость.
+      - minio
+    # Передаёт клиенту credentials и имя создаваемого bucket.
+    environment:
+      # Передаёт тот же access key, который использует MinIO.
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
+      # Передаёт тот же secret key, который использует MinIO.
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin}
+      # Задаёт bucket trans-books или значение из S3_BUCKET.
+      S3_BUCKET: ${S3_BUCKET:-trans-books}
+    # Заменяет стандартную команду образом на скрипт инициализации.
+    entrypoint:
+      # Запускает POSIX shell внутри контейнера.
+      - /bin/sh
+      # Передаёт следующую строку как shell-команду.
+      - -c
+      # Ждёт MinIO, настраивает alias и идемпотентно создаёт bucket.
+      - >-
+        until /usr/bin/mc alias set local http://minio:9000
+        "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}"; do sleep 2; done;
+        /usr/bin/mc mb --ignore-existing "local/$${S3_BUCKET}"
+    # Не перезапускает успешно завершившийся одноразовый контейнер.
+    restart: "no"
+
+  # Запускает Java 21 Spring Boot API управления книгами.
+  trans-api:
+    # Собирает образ из Dockerfile текущего Java-проекта.
+    build:
+      # Использует trans-api как Docker build context.
+      context: .
+      # Явно выбирает основной Dockerfile проекта.
+      dockerfile: Dockerfile
+    # Присваивает собранному образу локальный тег.
+    image: trans-api:local
+    # Не запускает API до готовности БД и создания S3 bucket.
+    depends_on:
+      # Ожидает успешного healthcheck PostgreSQL.
+      postgres:
+        # Требует состояния healthy, а не только запуска контейнера.
+        condition: service_healthy
+      # Ожидает завершения одноразовой инициализации MinIO.
+      minio-init:
+        # Требует нулевой exit code от minio-init.
+        condition: service_completed_successfully
+    # Передаёт Spring Boot все runtime-настройки из application.yaml.
+    environment:
+      # Запускает HTTP API внутри контейнера на порту 8080.
+      SERVER_PORT: 8080
+      # Подключает API к PostgreSQL по внутреннему Compose DNS.
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-data}
+      # Передаёт имя пользователя PostgreSQL.
+      DB_USER: ${DB_USER:-data}
+      # Передаёт пароль PostgreSQL.
+      DB_PASSWORD: ${DB_PASSWORD:-data}
+      # Передаёт имя bucket для книг.
+      S3_BUCKET: ${S3_BUCKET:-trans-books}
+      # Группирует объекты книг внутри префикса books.
+      S3_PREFIX: ${S3_PREFIX:-books}
+      # Задаёт регион, необходимый AWS S3 SDK.
+      S3_REGION: ${S3_REGION:-us-east-1}
+      # Направляет AWS S3 SDK во внутренний MinIO.
+      S3_ENDPOINT: http://minio:9000
+      # Включает path-style URL, необходимый локальному MinIO.
+      S3_PATH_STYLE_ACCESS: "true"
+      # Передаёт S3 access key Java-приложению.
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
+      # Передаёт S3 secret key Java-приложению.
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-minioadmin}
+      # Задаёт адрес будущего PDF Extractor вне этого Compose-файла.
+      PDF_EXTRACTOR_BASE_URL: ${PDF_EXTRACTOR_BASE_URL:-http://host.docker.internal:8001}
+      # Задаёт endpoint извлечения PDF.
+      PDF_EXTRACTOR_PATH: ${PDF_EXTRACTOR_PATH:-/api/v1/extract}
+      # Задаёт адрес будущего PDF Builder вне этого Compose-файла.
+      PDF_BUILDER_BASE_URL: ${PDF_BUILDER_BASE_URL:-http://host.docker.internal:8002}
+      # Задаёт endpoint сборки PDF.
+      PDF_BUILDER_PATH: ${PDF_BUILDER_PATH:-/api/v1/books/build}
+      # Задаёт адрес будущего Agent Flow вне этого Compose-файла.
+      AGENT_FLOW_BASE_URL: ${AGENT_FLOW_BASE_URL:-http://host.docker.internal:8003}
+      # Задаёт endpoint перевода текста.
+      AGENT_FLOW_PATH: ${AGENT_FLOW_PATH:-/api/v1/translate}
+      # Ограничивает размер одного загружаемого файла.
+      MAX_FILE_SIZE: ${MAX_FILE_SIZE:-100MB}
+      # Ограничивает общий размер multipart-запроса.
+      MAX_REQUEST_SIZE: ${MAX_REQUEST_SIZE:-100MB}
+    # Добавляет переносимый DNS alias для сервисов, запущенных на ноутбуке.
+    extra_hosts:
+      # Сопоставляет host.docker.internal с gateway Docker host.
+      - "host.docker.internal:host-gateway"
+    # Публикует Java API только на loopback-интерфейсе ноутбука.
+    ports:
+      # Использует локальный порт 8080 или TRANS_API_PORT.
+      - "127.0.0.1:${TRANS_API_PORT:-8080}:8080"
+    # Автоматически возвращает API после перезапуска Docker.
+    restart: unless-stopped
+
+# Объявляет именованные volumes локального стека.
+volumes:
+  # Хранит PostgreSQL data directory.
+  trans-postgres-data:
+  # Хранит объекты MinIO.
+  trans-minio-data:
