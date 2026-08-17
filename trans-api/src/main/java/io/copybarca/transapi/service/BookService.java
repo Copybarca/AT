@@ -102,7 +102,8 @@ public class BookService {
                 book.getTitle(),
                 book.getOriginalLanguage(),
                 book.getPath(),
-                book.getTranslatedPath()
+                book.getTranslatedPath(),
+                book.getTranslatedElementPath()
         );
     }
 }

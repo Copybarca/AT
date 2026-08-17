@@ -27,6 +27,9 @@ public class Book {
     @Column(name = "translated_path")
     private String translatedPath;
 
+    @Column(name = "translated_element_path")
+    private String translatedElementPath;
+
     protected Book() {
     }
 
@@ -73,5 +76,13 @@ public class Book {
 
     public void setTranslatedPath(String translatedPath) {
         this.translatedPath = translatedPath;
+    }
+
+    public String getTranslatedElementPath() {
+        return translatedElementPath;
+    }
+
+    public void setTranslatedElementPath(String translatedElementPath) {
+        this.translatedElementPath = translatedElementPath;
     }
 }

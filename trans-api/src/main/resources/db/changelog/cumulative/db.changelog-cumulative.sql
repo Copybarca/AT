@@ -72,3 +72,12 @@ COMMENT ON COLUMN trans.segment.sequential_number IS 'Порядковый но�
 COMMENT ON COLUMN trans.translated_segment.evaluation IS 'Оценка качества перевода от 1 до 5';
 
 --rollback DROP SCHEMA IF EXISTS trans CASCADE;
+
+--changeset copybarca:002-add-book-translated-element-path splitStatements:true endDelimiter:;
+ALTER TABLE trans.book
+    ADD COLUMN IF NOT EXISTS translated_element_path VARCHAR;
+
+COMMENT ON COLUMN trans.book.translated_element_path
+    IS 'S3-путь к переведённому элементу книги';
+
+--rollback ALTER TABLE trans.book DROP COLUMN IF EXISTS translated_element_path;

@@ -5,6 +5,7 @@ public record BookResponse(
         String title,
         String originalLanguage,
         String path,
-        String translatedPath
+        String translatedPath,
+        String translatedElementPath
 ) {
 }

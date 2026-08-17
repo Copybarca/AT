@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS trans.book
     original_language character varying(3) COLLATE pg_catalog."default" NOT NULL,
     path character varying COLLATE pg_catalog."default",
     translated_path character varying COLLATE pg_catalog."default",
+    translated_element_path character varying COLLATE pg_catalog."default",
     CONSTRAINT book_pkey PRIMARY KEY (id)
 );
 
@@ -25,6 +26,9 @@ COMMENT ON COLUMN trans.book.path
 
 COMMENT ON COLUMN trans.book.translated_path
     IS 'S3-путь к переведённому PDF-документу';
+
+COMMENT ON COLUMN trans.book.translated_element_path
+    IS 'S3-путь к переведённому элементу книги';
 
 CREATE TABLE IF NOT EXISTS trans.insertion
 (
