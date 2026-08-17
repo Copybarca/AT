@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS trans.book
     title character varying(128) COLLATE pg_catalog."default" NOT NULL,
     original_language character varying(3) COLLATE pg_catalog."default" NOT NULL,
     path character varying COLLATE pg_catalog."default",
+    translated_path character varying COLLATE pg_catalog."default",
     CONSTRAINT book_pkey PRIMARY KEY (id)
 );
 
@@ -17,7 +18,10 @@ COMMENT ON COLUMN trans.book.original_language
     IS 'BCP 47 language tag of the source book';
 
 COMMENT ON COLUMN trans.book.path
-    IS 'String path or external resource reference';
+    IS 'S3 path to the original PDF document';
+
+COMMENT ON COLUMN trans.book.translated_path
+    IS 'S3 path to the translated PDF document';
 
 CREATE TABLE IF NOT EXISTS trans.insertion
 (
