@@ -11,11 +11,23 @@
 - PostgreSQL JDBC;
 - Maven Wrapper 3.9.16.
 
-Прикладной код и endpoints пока отсутствуют. JDK 21 установлен отдельно от системной Java 17:
+JDK 21 установлен отдельно от системной Java 17:
 
 ```bash
 JAVA_HOME="$HOME/.local/share/jdks/temurin-21" ./mvnw test
 ```
+
+## API книг
+
+| Метод | Endpoint | Назначение |
+| --- | --- | --- |
+| `POST` | `/api/v1/books` | Создать книгу |
+| `PATCH` | `/api/v1/books/{bookId}` | Обновить title/originalLanguage |
+| `DELETE` | `/api/v1/books/{bookId}` | Удалить книгу |
+| `POST` | `/api/v1/books/{bookId}/original` | Загрузить оригинал любого формата в S3 |
+| `POST` | `/api/v1/books/{bookId}/translated` | Загрузить переведённый PDF в S3 |
+
+Архитектурные пакеты: `controller`, `dto`, `service`, `repo`, `restclient`. Внешние клиенты возвращают `Optional<?>`, пока контракты ответов соседних сервисов не определены.
 
 ## Database
 
@@ -30,9 +42,11 @@ schema=trans
 
 Для другого окружения используются переменные `DB_URL`, `DB_USER` и `DB_PASSWORD`.
 
+Настройки S3 и внешних REST API находятся в `application.yaml` и переопределяются environment variables. Для S3-совместимого хранилища доступны `S3_ENDPOINT` и `S3_PATH_STYLE_ACCESS`.
+
 ## Docker
 
-После добавления main-класса Spring Boot образ собирается и запускается так:
+Образ собирается и запускается так:
 
 ```bash
 docker build -t trans-api .
