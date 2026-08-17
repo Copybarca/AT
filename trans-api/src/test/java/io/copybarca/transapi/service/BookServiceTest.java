@@ -8,8 +8,8 @@ import static org.mockito.Mockito.when;
 
 import io.copybarca.transapi.dto.book.CreateBookRequest;
 import io.copybarca.transapi.dto.book.UpdateBookMetadataRequest;
+import io.copybarca.transapi.model.Book;
 import io.copybarca.transapi.repo.BookRepository;
-import io.copybarca.transapi.repo.entity.BookEntity;
 import io.copybarca.transapi.service.exception.InvalidBookFileException;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,8 +37,8 @@ class BookServiceTest {
 
     @Test
     void addsBook() {
-        when(bookRepository.save(any(BookEntity.class))).thenAnswer(invocation -> {
-            BookEntity book = invocation.getArgument(0);
+        when(bookRepository.save(any(Book.class))).thenAnswer(invocation -> {
+            Book book = invocation.getArgument(0);
             book.setId(10L);
             return book;
         });
@@ -52,7 +52,7 @@ class BookServiceTest {
 
     @Test
     void patchesBookMetadata() {
-        BookEntity book = book(7L);
+        Book book = book(7L);
         when(bookRepository.findById(7L)).thenReturn(Optional.of(book));
 
         var response = bookService.updateMetadata(
@@ -66,7 +66,7 @@ class BookServiceTest {
 
     @Test
     void uploadsOriginalFileOfAnyFormat() {
-        BookEntity book = book(7L);
+        Book book = book(7L);
         var file = new MockMultipartFile("file", "book.epub", "application/epub+zip", "data".getBytes());
         when(bookRepository.findById(7L)).thenReturn(Optional.of(book));
         when(bookFileStorage.storeOriginal(7L, file)).thenReturn("s3://books/7/original/book.epub");
@@ -85,7 +85,7 @@ class BookServiceTest {
 
     @Test
     void deletesBookMetadata() {
-        BookEntity book = book(7L);
+        Book book = book(7L);
         when(bookRepository.findById(7L)).thenReturn(Optional.of(book));
 
         bookService.deleteBook(7L);
@@ -93,8 +93,8 @@ class BookServiceTest {
         verify(bookRepository).delete(book);
     }
 
-    private static BookEntity book(Long id) {
-        var book = new BookEntity("Book", "eng");
+    private static Book book(Long id) {
+        var book = new Book("Book", "eng");
         book.setId(id);
         return book;
     }

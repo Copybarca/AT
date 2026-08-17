@@ -1,7 +1,7 @@
 package io.copybarca.transapi.repo;
 
-import io.copybarca.transapi.repo.entity.BookEntity;
+import io.copybarca.transapi.model.Book;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface BookRepository extends JpaRepository<BookEntity, Long> {
+public interface BookRepository extends JpaRepository<Book, Long> {
 }

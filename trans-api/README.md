@@ -27,7 +27,7 @@ JAVA_HOME="$HOME/.local/share/jdks/temurin-21" ./mvnw test
 | `POST` | `/api/v1/books/{bookId}/original` | Загрузить оригинал любого формата в S3 |
 | `POST` | `/api/v1/books/{bookId}/translated` | Загрузить переведённый PDF в S3 |
 
-Архитектурные пакеты: `controller`, `dto`, `service`, `repo`, `restclient`. Внешние клиенты возвращают `Optional<?>`, пока контракты ответов соседних сервисов не определены.
+Архитектурные пакеты: `controller`, `dto`, `service`, `repo`, `model`, `restclient`. Пакет `model` содержит JPA-сущности всех таблиц схемы `trans`. Внешние клиенты возвращают `Optional<?>`, пока контракты ответов соседних сервисов не определены.
 
 ## Database
 

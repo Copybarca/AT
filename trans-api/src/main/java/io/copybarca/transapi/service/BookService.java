@@ -3,8 +3,8 @@ package io.copybarca.transapi.service;
 import io.copybarca.transapi.dto.book.BookResponse;
 import io.copybarca.transapi.dto.book.CreateBookRequest;
 import io.copybarca.transapi.dto.book.UpdateBookMetadataRequest;
+import io.copybarca.transapi.model.Book;
 import io.copybarca.transapi.repo.BookRepository;
-import io.copybarca.transapi.repo.entity.BookEntity;
 import io.copybarca.transapi.service.exception.BookNotFoundException;
 import io.copybarca.transapi.service.exception.InvalidBookFileException;
 import java.util.Locale;
@@ -27,7 +27,7 @@ public class BookService {
 
     @Transactional
     public BookResponse addBook(CreateBookRequest request) {
-        var book = new BookEntity(request.title().trim(), request.originalLanguage().trim());
+        var book = new Book(request.title().trim(), request.originalLanguage().trim());
         return toResponse(bookRepository.save(book));
     }
 
@@ -37,7 +37,7 @@ public class BookService {
             throw new IllegalArgumentException("At least one metadata field must be provided");
         }
 
-        BookEntity book = findBook(bookId);
+        Book book = findBook(bookId);
         if (request.title() != null) {
             if (!StringUtils.hasText(request.title())) {
                 throw new IllegalArgumentException("Book title must not be blank");
@@ -55,14 +55,14 @@ public class BookService {
 
     @Transactional
     public void deleteBook(Long bookId) {
-        BookEntity book = findBook(bookId);
+        Book book = findBook(bookId);
         bookRepository.delete(book);
     }
 
     @Transactional
     public BookResponse addOriginalBookData(Long bookId, MultipartFile file) {
         requireNonEmpty(file);
-        BookEntity book = findBook(bookId);
+        Book book = findBook(bookId);
         book.setPath(bookFileStorage.storeOriginal(bookId, file));
         return toResponse(book);
     }
@@ -71,12 +71,12 @@ public class BookService {
     public BookResponse addTranslatedBook(Long bookId, MultipartFile file) {
         requireNonEmpty(file);
         requirePdf(file);
-        BookEntity book = findBook(bookId);
+        Book book = findBook(bookId);
         book.setTranslatedPath(bookFileStorage.storeTranslated(bookId, file));
         return toResponse(book);
     }
 
-    private BookEntity findBook(Long bookId) {
+    private Book findBook(Long bookId) {
         return bookRepository.findById(bookId)
                 .orElseThrow(() -> new BookNotFoundException(bookId));
     }
@@ -96,7 +96,7 @@ public class BookService {
         }
     }
 
-    private static BookResponse toResponse(BookEntity book) {
+    private static BookResponse toResponse(Book book) {
         return new BookResponse(
                 book.getId(),
                 book.getTitle(),

@@ -1,4 +1,4 @@
-package io.copybarca.transapi.repo.entity;
+package io.copybarca.transapi.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -9,7 +9,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "book", schema = "trans")
-public class BookEntity {
+public class Book {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,10 +27,10 @@ public class BookEntity {
     @Column(name = "translated_path")
     private String translatedPath;
 
-    protected BookEntity() {
+    protected Book() {
     }
 
-    public BookEntity(String title, String originalLanguage) {
+    public Book(String title, String originalLanguage) {
         this.title = title;
         this.originalLanguage = originalLanguage;
     }
