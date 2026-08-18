@@ -1290,3 +1290,28 @@ retention.
 
 Практический порядок запуска, восстановления и приёмки вынесен в
 `TRANSLATION_PIPELINE_RUNBOOK.md`.
+
+## 18. Рабочий reference implementation пилота
+
+Проверенные скрипты и тесты полного пилота сохранены в каталоге:
+
+`docs/examples/translation-pipeline-pilot/`
+
+В bundle входят:
+
+- однофрагментный TranslateGemma worker с тремя стратегиями попыток;
+- защита и восстановление числовых токенов;
+- validation, attempts history и review queue;
+- exporter SQLite memory в keyed Markdown;
+- reflow HTML/PDF builder с original-artwork и review-key profiles;
+- реальный пример glossary TSV;
+- семь unit-тестов translation core;
+- проектная спецификация и требования к PDF;
+- support adapters для локального импорта сохранённого worker.
+
+Команды проверки, зависимости, границы применимости и карта переноса алгоритмов
+в четыре production-сервиса описаны в
+`docs/examples/translation-pipeline-pilot/README.md`.
+
+Reference bundle не содержит книгу, переводы, SQLite backup, модели, логи,
+машинные пути или сгенерированные PDF.

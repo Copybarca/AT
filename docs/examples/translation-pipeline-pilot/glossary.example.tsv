@@ -1,0 +1,162 @@
+english	russian	category	note
+Foreword	Вступительное слово	Publishing	Front matter; distinguish from Preface
+Preface	Предисловие	Publishing	Front matter; distinguish from Foreword
+OAuth	OAuth	Protected	Never transliterate
+OAuth 2.0	OAuth 2.0	Protected	Never transliterate
+OpenID Connect	OpenID Connect	Protected	Never translate product/protocol name
+OIDC	OIDC	Protected	Never transliterate
+API	API	Protected	Never transliterate
+APIs	API	Protected	Plural is expressed by Russian grammar
+JWT	JWT	Protected	Never transliterate
+JSON Web Token	JSON Web Token	Protected	Retain standard name
+RFC	RFC	Protected	Never transliterate
+HTTP	HTTP	Protected	Never transliterate
+HTTPS	HTTPS	Protected	Never transliterate
+Kubernetes	Kubernetes	Protected	Never transliterate
+Open Policy Agent	Open Policy Agent	Protected	Product name; retain OPA when present
+OPA	OPA	Protected	Never transliterate
+access token	токен доступа	OAuth	Canonical OAuth term
+API message credential	учётные данные API-сообщения	OAuth	In this book the credential is usually an access token
+refresh token	токен обновления	OAuth	Canonical OAuth term
+ID token	ID-токен	OIDC	Do not call it an access token
+authorization code	код авторизации	OAuth	Canonical OAuth term
+authorization server	сервер авторизации	OAuth	Use this order in Russian
+resource server	сервер ресурсов	OAuth	Canonical OAuth term
+protected resource	защищённый ресурс	OAuth	Canonical OAuth term
+client	клиент	OAuth	Software client, not customer
+public client	публичный клиент	OAuth	Canonical OAuth term
+confidential client	конфиденциальный клиент	OAuth	Canonical OAuth term
+OAuth client	OAuth-клиент	OAuth	Hyphenated in Russian
+API client	API-клиент	API	Hyphenated in Russian
+API gateway	API-шлюз	API	Hyphenated in Russian
+API gateway plug-in	подключаемый модуль API-шлюза	API	Prefer Russian wording
+API gateway role	роль API-шлюза	API	Canonical wording
+scope	область доступа	OAuth	Keep scope in code identifiers only
+scopes	области доступа	OAuth	Keep scopes in code identifiers only
+claim	утверждение	OAuth/JWT	JWT claim
+claims	утверждения	OAuth/JWT	JWT claims
+audience	целевая аудитория	OAuth/JWT	JWT aud claim
+issuer	эмитент	OAuth/JWT	JWT iss claim
+subject	субъект	OAuth/JWT	JWT sub claim
+token endpoint	эндпоинт токенов	OAuth	Canonical wording
+authorization endpoint	эндпоинт авторизации	OAuth	Canonical wording
+redirect URI	URI перенаправления	OAuth	Preserve URI uppercase
+redirect uri	URI перенаправления	OAuth	Figure label variant
+code flow	поток с кодом авторизации	OAuth	Expanded for clarity
+device flow	поток для устройств	OAuth	Canonical wording
+client credentials flow	поток учётных данных клиента	OAuth	Canonical wording
+refresh token flow	поток обновления токена	OAuth	Canonical wording
+hybrid flow	гибридный поток	OIDC	Canonical wording
+revoke flow	поток отзыва	OAuth	Canonical wording
+token exchange	обмен токенами	OAuth	Canonical wording
+token introspection	интроспекция токена	OAuth	RFC terminology
+introspection	интроспекция	OAuth	RFC terminology
+proof of possession	доказательство владения	Security	Canonical wording
+sender-constrained token	токен, привязанный к отправителю	Security	Canonical wording
+sender-constrained tokens	токены, привязанные к отправителю	Security	Canonical wording
+bearer token	токен предъявителя	Security	Canonical wording
+opaque token	непрозрачный токен	Security	Canonical wording
+wrapped opaque token	обёрнутый непрозрачный токен	Security	Canonical wording
+phantom token	фантомный токен	Security	Pattern name
+split token	разделённый токен	Security	Pattern name
+zero trust	нулевое доверие	Security	Canonical wording
+Zero Trust	нулевое доверие	Security	Lowercase in running Russian text
+least privilege	минимальные привилегии	Security	Principle of least privilege
+principle of least privilege	принцип минимальных привилегий	Security	Canonical wording
+least-privilege API access	доступ к API с минимальными привилегиями	Security	Avoid “minimum level of access”
+identity	цифровая идентичность	Identity	Use “идентификатор” only for an ID value
+identities	цифровые идентичности	Identity	Canonical wording
+user identity	цифровая идентичность пользователя	Identity	Do not render as identification information
+identity provider	поставщик цифровой идентичности	Identity	Canonical wording
+external identity provider	внешний поставщик цифровой идентичности	Identity	Canonical wording
+workload identity	цифровая идентичность рабочей нагрузки	Identity	Canonical wording
+workload identities	цифровые идентичности рабочих нагрузок	Identity	Canonical wording
+user account	учётная запись пользователя	Identity	Canonical wording
+user accounts	учётные записи пользователей	Identity	Canonical wording
+user authentication	аутентификация пользователя	Identity	Canonical wording
+user authorization	авторизация пользователя	Identity	Do not confuse with authentication
+single sign-on	единый вход	Identity	Add SSO when present in source
+multifactor authentication	многофакторная аутентификация	Identity	Canonical wording
+step-up authentication	усиленная аутентификация	Identity	Canonical wording
+passwordless authentication	беспарольная аутентификация	Identity	Canonical wording
+identity proofing	подтверждение личности	Identity	Canonical wording
+account linking	связывание учётных записей	Identity	Canonical wording
+account recovery	восстановление учётной записи	Identity	Canonical wording
+account decommissioning	вывод учётной записи из эксплуатации	Identity	Canonical wording
+entitlement	право доступа	Authorization	Not “привилегия” in this book
+entitlements	права доступа	Authorization	Not “привилегии” in this book
+entitlement management	управление правами доступа	Authorization	Canonical wording
+business privileges	бизнес-права доступа	Authorization	Do not use business permissions or privileges literally
+business authorization	авторизация на уровне бизнес-логики	Authorization	Domain-level authorization, not commercial authorization
+policy engine	механизм политик	Authorization	Canonical wording
+policy decision point	точка принятия решения по политике	Authorization	PDP
+policy enforcement point	точка применения политики	Authorization	PEP
+policy information point	точка информации для политик	Authorization	PIP
+policy administration point	точка администрирования политик	Authorization	PAP
+policy retrieval point	точка получения политик	Authorization	PRP
+policy as code	политики как код	Authorization	Canonical wording
+role-based access control	управление доступом на основе ролей	Authorization	RBAC
+relationship-based access control	управление доступом на основе отношений	Authorization	ReBAC
+attribute-based access control	управление доступом на основе атрибутов	Authorization	ABAC
+cloud native	облачно-нативный	Cloud	Decline according to context
+cloud-native	облачно-нативный	Cloud	Decline according to context
+domain logic	логика предметной области	Architecture	Avoid literal “логика домена”
+upstream microservice	вышестоящий микросервис	Architecture	Decline according to context
+upstream microservices	вышестоящие микросервисы	Architecture	Avoid “верхние микросервисы”
+low-level security	низкоуровневые механизмы безопасности	Security	Security mechanisms, not an abstract amount of security
+secure values	защищённые данные	Security	Values carried in a verifiable security context
+time to market	срок вывода продукта на рынок	Editorial	Canonical product-development term
+well-established standard	широко признанный стандарт	Editorial	Avoid cumbersome literal calque
+multiregion	мультирегиональная архитектура	Cloud	Adapt grammar to context
+multitenancy	мультитенантность	Cloud	Canonical wording
+service mesh	сервисная сеть	Cloud	Canonical wording
+sidecar	сайдкар	Cloud	Canonical Kubernetes term
+ingress	входящий трафик	Networking	Keep Ingress for Kubernetes resource names
+egress	исходящий трафик	Networking	Keep Egress for resource names
+native application	нативное приложение	Client	Canonical wording
+browser-based application	браузерное приложение	Client	Canonical wording
+backend for frontend	серверная часть для фронтенда	Client	Retain BFF abbreviation when present
+secure cookie	защищённый cookie-файл	Web	Canonical wording
+same-origin policy	политика одного источника	Web	Canonical wording
+content security policy	политика безопасности содержимого	Web	CSP
+cross-origin resource sharing	совместное использование ресурсов между источниками	Web	CORS
+cross-site request forgery	межсайтовая подделка запросов	Web	CSRF
+cross-site scripting	межсайтовый скриптинг	Web	XSS
+clickjacking	кликджекинг	Web	Canonical wording
+API-first security	безопасность по принципу API-first	Editorial	Keep API-first recognizable
+code example	пример кода	Editorial	Canonical wording
+summary	итоги	Editorial	Chapter closing heading
+Figure	Рисунок	Editorial	Cross-reference label
+Chapter	Глава	Editorial	Cross-reference label
+Part	Часть	Editorial	Book division
+Clients	Клиенты	Figure	Exact diagram label
+Client	Клиент	Figure	Exact diagram label
+Authorization server	Сервер авторизации	Figure	Exact diagram label
+API gateway	API-шлюз	Figure	Exact diagram label
+APIs	API	Figure	Exact diagram label
+Access token	Токен доступа	Figure	Exact diagram label
+User authentication	Аутентификация пользователя	Figure	Exact diagram label
+API access	Доступ к API	Figure	Exact diagram label
+Trusts	Доверяет	Figure	Exact diagram label
+Backend cluster	Кластер серверной части	Figure	Exact diagram label
+Website	Веб-сайт	Figure	Exact diagram label
+Issue cookie to browser	Выдать cookie-файл браузеру	Figure	Exact diagram label
+Token properties	Свойства токена	Figure	Exact diagram label
+Authentication factors	Факторы аутентификации	Figure	Exact diagram label
+Crypto	Криптография	Figure	Exact diagram label
+Username + password	Имя пользователя и пароль	Figure	Exact diagram label
+Formats	Форматы	Figure	Exact diagram label
+Key stores	Хранилища ключей	Figure	Exact diagram label
+Lifetimes	Сроки действия	Figure	Exact diagram label
+Trust stores	Хранилища доверия	Figure	Exact diagram label
+credentials	учётные данные	Figure	Exact diagram label
+Social logins	Вход через внешнего поставщика	Figure	Exact diagram label
+Algorithms	Алгоритмы	Figure	Exact diagram label
+Authentication app	Приложение аутентификации	Figure	Exact diagram label
+consent enabled	согласие включено	Figure	Exact diagram label
+User account values	Данные учётной записи	Figure	Exact diagram label
+External values	Внешние данные	Figure	Exact diagram label
+Runtime values	Данные времени выполнения	Figure	Exact diagram label
+tenant id	ID тенанта	Figure	Exact diagram label
+country code	код страны	Figure	Exact diagram label
+roles	роли	Figure	Exact diagram label
