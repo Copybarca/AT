@@ -117,4 +117,7 @@ ALTER TABLE IF EXISTS trans.translated_segment
     ON UPDATE NO ACTION
     ON DELETE CASCADE;
 
+CREATE INDEX IF NOT EXISTS idx_translated_segment_language
+    ON trans.translated_segment(language);
+
 END;
