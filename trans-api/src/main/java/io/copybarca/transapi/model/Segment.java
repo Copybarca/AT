@@ -17,10 +17,16 @@ import jakarta.persistence.UniqueConstraint;
 @Table(
         name = "segment",
         schema = "trans",
-        uniqueConstraints = @UniqueConstraint(
-                name = "uq_segment_book_sequence",
-                columnNames = {"book_id", "sequential_number"}
-        ),
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uq_segment_book_sequence",
+                        columnNames = {"book_id", "sequential_number"}
+                ),
+                @UniqueConstraint(
+                        name = "uq_segment_book_stable_key",
+                        columnNames = {"book_id", "stable_key"}
+                )
+        },
         indexes = {
                 @Index(name = "idx_segment_insertion_id", columnList = "insertion_id"),
                 @Index(name = "idx_segment_text_segment_hash", columnList = "text_segment_hash")
@@ -39,6 +45,9 @@ public class Segment {
             foreignKey = @ForeignKey(name = "fk_segment_book")
     )
     private Book book;
+
+    @Column(name = "stable_key", nullable = false, length = 64)
+    private String stableKey;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
@@ -62,8 +71,9 @@ public class Segment {
     protected Segment() {
     }
 
-    public Segment(Book book, Integer sequentialNumber) {
+    public Segment(Book book, String stableKey, Integer sequentialNumber) {
         this.book = book;
+        this.stableKey = stableKey;
         this.sequentialNumber = sequentialNumber;
     }
 
@@ -77,6 +87,14 @@ public class Segment {
 
     public void setBook(Book book) {
         this.book = book;
+    }
+
+    public String getStableKey() {
+        return stableKey;
+    }
+
+    public void setStableKey(String stableKey) {
+        this.stableKey = stableKey;
     }
 
     public Insertion getInsertion() {
