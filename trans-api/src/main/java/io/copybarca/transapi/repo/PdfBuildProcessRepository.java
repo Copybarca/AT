@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface PdfBuildProcessRepository extends JpaRepository<PdfBuildProcess, Long> {
 
-    Optional<PdfBuildProcess> findByBookIdAndTargetLanguage(
+    Optional<PdfBuildProcess> findByBook_IdAndTargetLanguage(
             Long bookId,
             String targetLanguage
     );

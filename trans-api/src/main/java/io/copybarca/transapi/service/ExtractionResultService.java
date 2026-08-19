@@ -67,7 +67,7 @@ public class ExtractionResultService {
                 .orElseThrow(() -> new IllegalArgumentException("Book does not exist"));
         for (ExtractionSegmentData data : request.segments()) {
             TextSegment text = upsertText(data.sourceHash(), data.text());
-            Segment segment = segments.findByBookIdAndStableKey(bookId, data.stableKey())
+            Segment segment = segments.findByBook_IdAndStableKey(bookId, data.stableKey())
                     .orElseGet(() -> new Segment(
                             book,
                             data.stableKey(),
@@ -95,7 +95,7 @@ public class ExtractionResultService {
         Book book = books.findById(bookId)
                 .orElseThrow(() -> new IllegalArgumentException("Book does not exist"));
         String checksum = checksum(file);
-        Segment segment = segments.findByBookIdAndStableKey(bookId, request.stableKey())
+        Segment segment = segments.findByBook_IdAndStableKey(bookId, request.stableKey())
                 .orElseGet(() -> new Segment(
                         book,
                         request.stableKey(),
@@ -123,7 +123,7 @@ public class ExtractionResultService {
     public void upsertRegions(Long bookId, ExtractionRegionBatchRequest request) {
         requireProcess(bookId, request.processId());
         for (ExtractionRegionData data : request.regions()) {
-            Segment image = segments.findByBookIdAndStableKey(
+            Segment image = segments.findByBook_IdAndStableKey(
                             bookId,
                             data.imageStableKey()
                     )

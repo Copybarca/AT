@@ -9,7 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface PdfExtractionProcessRepository
         extends JpaRepository<PdfExtractionProcess, Long> {
 
-    Optional<PdfExtractionProcess> findByBookId(Long bookId);
+    Optional<PdfExtractionProcess> findByBook_Id(Long bookId);
 
     List<PdfExtractionProcess> findByStatus(ProcessStatus status);
 }

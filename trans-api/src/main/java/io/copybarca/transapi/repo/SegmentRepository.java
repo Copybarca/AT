@@ -9,8 +9,8 @@ import org.springframework.data.repository.query.Param;
 
 public interface SegmentRepository extends JpaRepository<Segment, Long> {
 
-    Optional<Segment> findByBookIdAndStableKey(Long bookId, String stableKey);
-    List<Segment> findByBookIdOrderBySequentialNumber(Long bookId);
+    Optional<Segment> findByBook_IdAndStableKey(Long bookId, String stableKey);
+    List<Segment> findByBook_IdOrderBySequentialNumber(Long bookId);
 
 
     @Query(

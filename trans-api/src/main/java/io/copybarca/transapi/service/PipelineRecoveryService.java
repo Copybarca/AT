@@ -64,7 +64,7 @@ public class PipelineRecoveryService implements ApplicationRunner {
         for (TranslationProcess process : translations.findByStatus(
                 ProcessStatus.IN_PROGRESS
         )) {
-            if (extractions.findByBookId(process.getBookId())
+            if (extractions.findByBook_Id(process.getBookId())
                     .filter(extraction ->
                             extraction.getStatus() == ProcessStatus.COMPLETED
                     )

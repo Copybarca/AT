@@ -9,12 +9,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface TranslationProcessRepository
         extends JpaRepository<TranslationProcess, Long> {
 
-    Optional<TranslationProcess> findByBookIdAndTargetLanguage(
+    Optional<TranslationProcess> findByBook_IdAndTargetLanguage(
             Long bookId,
             String targetLanguage
     );
 
-    List<TranslationProcess> findByBookIdAndStatus(
+    List<TranslationProcess> findByBook_IdAndStatus(
             Long bookId,
             ProcessStatus status
     );

@@ -54,7 +54,7 @@ public class PdfBuildDispatchService {
         List<PdfBuildElement> elements = new ArrayList<>();
         List<PdfBuildAsset> assets = new ArrayList<>();
 
-        for (Segment segment : segments.findByBookIdOrderBySequentialNumber(
+        for (Segment segment : segments.findByBook_IdOrderBySequentialNumber(
                 book.getId()
         )) {
             if (segment.getTextSegment() != null) {

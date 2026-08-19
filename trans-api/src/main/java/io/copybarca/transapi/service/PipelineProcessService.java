@@ -33,6 +33,7 @@ public class PipelineProcessService {
     private final PipelineTaskQueue queue;
     private final PdfExtractionDispatchService extractionDispatcher;
 
+    private final TranslationPipelineService translationPipeline;
     public PipelineProcessService(
             BookRepository books,
             PdfExtractionProcessRepository extractions,
@@ -40,7 +41,8 @@ public class PipelineProcessService {
             PdfBuildProcessRepository builds,
             SegmentRepository segments,
             PipelineTaskQueue queue,
-            PdfExtractionDispatchService extractionDispatcher
+            PdfExtractionDispatchService extractionDispatcher,
+            TranslationPipelineService translationPipeline
     ) {
         this.books = books;
         this.extractions = extractions;
@@ -49,6 +51,7 @@ public class PipelineProcessService {
         this.segments = segments;
         this.queue = queue;
         this.extractionDispatcher = extractionDispatcher;
+        this.translationPipeline = translationPipeline;
     }
 
     @Transactional
@@ -60,9 +63,10 @@ public class PipelineProcessService {
         }
         String language = targetLanguage.trim();
 
-        PdfExtractionProcess extraction = extractions.findByBookId(bookId)
+        PdfExtractionProcess extraction = extractions.findByBook_Id(bookId)
                 .orElseGet(() -> extractions.save(new PdfExtractionProcess(book)));
-        translations.findByBookIdAndTargetLanguage(bookId, language)
+        TranslationProcess translation = translations
+                .findByBook_IdAndTargetLanguage(bookId, language)
                 .orElseGet(() -> translations.save(
                         new TranslationProcess(book, language)
                 ));
@@ -85,6 +89,20 @@ public class PipelineProcessService {
                         "Extraction process was submitted with conflicting input"
                 );
             }
+        } else if (translation.getStatus() == ProcessStatus.IN_PROGRESS) {
+            QueueSubmitOutcome outcome = queue.submit(
+                    "translation:" + translation.getId(),
+                    bookId + ":" + language,
+                    () -> translationPipeline.run(translation.getId())
+            );
+            if (outcome == QueueSubmitOutcome.FULL) {
+                throw new PipelineQueueFullException();
+            }
+            if (outcome == QueueSubmitOutcome.CONFLICT) {
+                throw new IllegalStateException(
+                        "Translation process was submitted with conflicting input"
+                );
+            }
         }
         return new TranslationAcceptedResponse(bookId, language);
     }
@@ -94,7 +112,7 @@ public class PipelineProcessService {
         if (!books.existsById(bookId)) {
             throw new BookNotFoundException(bookId);
         }
-        PdfExtractionProcess extraction = extractions.findByBookId(bookId)
+        PdfExtractionProcess extraction = extractions.findByBook_Id(bookId)
                 .orElse(null);
         StageStatusResponse extractionResponse = extraction == null
                 ? null
@@ -102,7 +120,7 @@ public class PipelineProcessService {
 
         TranslationStatusResponse translationResponse = null;
         TranslationProcess translation = translations
-                .findByBookIdAndTargetLanguage(bookId, targetLanguage)
+                .findByBook_IdAndTargetLanguage(bookId, targetLanguage)
                 .orElse(null);
         if (extraction != null
                 && extraction.getStatus() == ProcessStatus.COMPLETED
@@ -119,7 +137,7 @@ public class PipelineProcessService {
             );
         }
 
-        PdfBuildProcess build = builds.findByBookIdAndTargetLanguage(
+        PdfBuildProcess build = builds.findByBook_IdAndTargetLanguage(
                         bookId,
                         targetLanguage
                 )

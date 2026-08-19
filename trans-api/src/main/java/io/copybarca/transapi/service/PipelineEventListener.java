@@ -11,6 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 @Component
@@ -45,7 +47,7 @@ public class PipelineEventListener {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void afterExtraction(ExtractionCompletedEvent event) {
-        for (TranslationProcess process : translations.findByBookIdAndStatus(
+        for (TranslationProcess process : translations.findByBook_IdAndStatus(
                 event.bookId(),
                 ProcessStatus.IN_PROGRESS
         )) {
@@ -54,13 +56,14 @@ public class PipelineEventListener {
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void afterTranslation(TranslationCompletedEvent event) {
         Book book = books.findById(event.bookId()).orElseThrow();
-        PdfBuildProcess process = builds.findByBookIdAndTargetLanguage(
+        PdfBuildProcess process = builds.findByBook_IdAndTargetLanguage(
                         event.bookId(),
                         event.targetLanguage()
                 )
-                .orElseGet(() -> builds.save(
+                .orElseGet(() -> builds.saveAndFlush(
                         new PdfBuildProcess(book, event.targetLanguage())
                 ));
         QueueSubmitOutcome outcome = queue.submit(
