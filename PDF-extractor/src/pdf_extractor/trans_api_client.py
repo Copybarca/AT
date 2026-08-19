@@ -129,6 +129,7 @@ def _segment_payload(segment: ExtractedSegment) -> dict[str, object]:
 def _region_payload(region: ImageTextRegion) -> dict[str, object]:
     return {
         "stableKey": region.stable_key,
+        "imageStableKey": region.image_stable_key,
         "sourceHash": region.source_hash,
         "sequentialNumber": region.sequential_number,
         "physicalPage": region.physical_page,

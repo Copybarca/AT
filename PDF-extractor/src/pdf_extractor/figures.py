@@ -3,9 +3,13 @@ from __future__ import annotations
 import pymupdf
 
 from pdf_extractor.models import BoundingBox, ExtractedImage
+from pdf_extractor.ocr import ImageOcrEngine
 
 
 class FigureExtractor:
+    def __init__(self, image_ocr_engine: ImageOcrEngine | None = None) -> None:
+        self._image_ocr = image_ocr_engine
+
     def extract_page(
         self,
         document: pymupdf.Document,
@@ -28,9 +32,21 @@ class FigureExtractor:
             }.get(extension, f"image/{extension}")
             rectangles = page.get_image_rects(xref)
             rectangle = rectangles[0] if rectangles else pymupdf.Rect(0, 0, 0, 0)
+            content = bytes(extracted["image"])
+            stable_key = f"P{physical_page:04d}-F{figure_number:03d}"
+            regions = (
+                self._image_ocr.extract_image(
+                    content,
+                    media_type=media_type,
+                    image_stable_key=stable_key,
+                    physical_page=physical_page,
+                )
+                if self._image_ocr is not None
+                else ()
+            )
             images.append(
                 ExtractedImage(
-                    stable_key=f"P{physical_page:04d}-F{figure_number:03d}",
+                    stable_key=stable_key,
                     sequential_number=0,
                     physical_page=physical_page,
                     bbox=BoundingBox(
@@ -40,8 +56,8 @@ class FigureExtractor:
                         y1=float(rectangle.y1),
                     ),
                     media_type=media_type,
-                    content=bytes(extracted["image"]),
-                    regions=(),
+                    content=content,
+                    regions=regions,
                 )
             )
         return tuple(images)

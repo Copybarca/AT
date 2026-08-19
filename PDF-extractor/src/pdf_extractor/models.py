@@ -69,6 +69,7 @@ class ExtractionCommand(BaseModel):
 @dataclass(frozen=True, slots=True)
 class ImageTextRegion:
     stable_key: str
+    image_stable_key: str
     source_hash: str
     physical_page: int
     sequential_number: int

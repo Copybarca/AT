@@ -125,3 +125,51 @@ def test_extraction_rejects_a_source_checksum_mismatch(tmp_path: Path) -> None:
         assert str(error) == "Source PDF checksum does not match extraction command"
     else:
         raise AssertionError("Checksum mismatch must be rejected")
+
+
+class DeterministicImageOcr:
+    def extract_image(
+        self,
+        content: bytes,
+        *,
+        media_type: str,
+        image_stable_key: str,
+        physical_page: int,
+    ):
+        from pdf_extractor.models import ImageTextRegion
+
+        assert content.startswith(b"\x89PNG")
+        assert media_type == "image/png"
+        return (
+            ImageTextRegion(
+                image_stable_key=image_stable_key,
+                stable_key=f"{image_stable_key}-R001",
+                source_hash="sha256:" + "c" * 64,
+                physical_page=physical_page,
+                sequential_number=1,
+                bbox=BoundingBox(x0=1, y0=2, x1=20, y1=10),
+                text="Diagram label",
+                confidence=93.5,
+            ),
+        )
+
+
+def test_figure_extractor_attaches_regions_from_injected_ocr(tmp_path: Path) -> None:
+    pdf_path = tmp_path / "figure.pdf"
+    image_path = tmp_path / "figure.png"
+    image = Image.new("RGB", (32, 20), color=(220, 10, 30))
+    image.save(image_path, format="PNG")
+    document = pymupdf.open()
+    page = document.new_page()
+    page.insert_image(pymupdf.Rect(10, 20, 110, 80), filename=str(image_path))
+    document.save(pdf_path)
+    document.close()
+
+    with pymupdf.open(pdf_path) as opened:
+        [extracted] = FigureExtractor(
+            image_ocr_engine=DeterministicImageOcr()
+        ).extract_page(opened, opened[0], physical_page=1)
+
+    assert [region.text for region in extracted.regions] == ["Diagram label"]
+    assert extracted.regions[0].image_stable_key == extracted.stable_key
+    assert extracted.regions[0].stable_key == "P0001-F001-R001"

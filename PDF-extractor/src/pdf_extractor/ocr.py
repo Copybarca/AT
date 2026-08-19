@@ -2,13 +2,20 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
+from hashlib import sha256
+from io import BytesIO
 from typing import Any, Protocol
 
 import pymupdf
 import pytesseract  # type: ignore[import-untyped]
-from PIL import Image
+from PIL import Image, ImageOps
 
-from pdf_extractor.models import BoundingBox, ElementStyle, RawTextBlock
+from pdf_extractor.models import (
+    BoundingBox,
+    ElementStyle,
+    ImageTextRegion,
+    RawTextBlock,
+)
 
 
 class OcrEngine(Protocol):
@@ -110,3 +117,84 @@ def blocks_from_tesseract_data(
             )
         )
     return tuple(blocks)
+
+class ImageOcrEngine(Protocol):
+    def extract_image(
+        self,
+        content: bytes,
+        *,
+        media_type: str,
+        image_stable_key: str,
+        physical_page: int,
+    ) -> tuple[ImageTextRegion, ...]: ...
+
+
+class TesseractImageOcrEngine:
+    def __init__(
+        self,
+        *,
+        language: str = "eng",
+        minimum_confidence: float = 40,
+    ) -> None:
+        self._language = language
+        self._minimum_confidence = minimum_confidence
+
+    def extract_image(
+        self,
+        content: bytes,
+        *,
+        media_type: str,
+        image_stable_key: str,
+        physical_page: int,
+    ) -> tuple[ImageTextRegion, ...]:
+        del media_type
+        original = Image.open(BytesIO(content)).convert("RGB")
+        grayscale = ImageOps.autocontrast(ImageOps.grayscale(original))
+        binary = grayscale.point(lambda value: 255 if value >= 160 else 0)
+        variants = (original, grayscale, binary)
+        candidates: list[RawTextBlock] = []
+        for variant in variants:
+            for page_segmentation_mode in (6, 11):
+                data = pytesseract.image_to_data(
+                    variant,
+                    lang=self._language,
+                    output_type=pytesseract.Output.DICT,
+                    config=f"--psm {page_segmentation_mode}",
+                )
+                candidates.extend(
+                    blocks_from_tesseract_data(
+                        data,
+                        physical_page=physical_page,
+                        point_scale=1,
+                        minimum_confidence=self._minimum_confidence,
+                    )
+                )
+
+        unique: dict[tuple[str, int, int, int, int], RawTextBlock] = {}
+        for candidate in candidates:
+            key = (
+                candidate.text.casefold(),
+                round(candidate.bbox.x0),
+                round(candidate.bbox.y0),
+                round(candidate.bbox.x1),
+                round(candidate.bbox.y1),
+            )
+            unique.setdefault(key, candidate)
+
+        ordered = sorted(unique.values(), key=lambda item: (item.bbox.y0, item.bbox.x0))
+        regions: list[ImageTextRegion] = []
+        for region_number, candidate in enumerate(ordered, start=1):
+            text_hash = sha256(candidate.text.encode("utf-8")).hexdigest()
+            regions.append(
+                ImageTextRegion(
+                    image_stable_key=image_stable_key,
+                    stable_key=f"{image_stable_key}-R{region_number:03d}",
+                    source_hash=f"sha256:{text_hash}",
+                    physical_page=physical_page,
+                    sequential_number=region_number,
+                    bbox=candidate.bbox,
+                    text=candidate.text,
+                    confidence=None,
+                )
+            )
+        return tuple(regions)

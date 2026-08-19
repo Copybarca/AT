@@ -14,7 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from pdf_extractor.extractor import PdfExtractionService
 from pdf_extractor.figures import FigureExtractor
 from pdf_extractor.models import ExtractionCommand
-from pdf_extractor.ocr import TesseractOcrEngine
+from pdf_extractor.ocr import TesseractImageOcrEngine, TesseractOcrEngine
 from pdf_extractor.queue import (
     ExtractionJob,
     ExtractionTaskQueue,
@@ -73,7 +73,11 @@ def create_app(
                 dpi=configured.ocr_dpi,
                 language=configured.ocr_language,
             ),
-            figure_extractor=FigureExtractor(),
+            figure_extractor=FigureExtractor(
+                image_ocr_engine=TesseractImageOcrEngine(
+                    language=configured.ocr_language,
+                )
+            ),
         )
         queue = ExtractionTaskQueue(
             capacity=configured.extraction_queue_capacity,
