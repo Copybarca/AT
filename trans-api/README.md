@@ -1,6 +1,6 @@
 # trans-api
 
-Каркас Java backend API:
+Java backend API, владелец PostgreSQL/S3 и оркестратор PDF pipeline:
 
 - Java 21;
 - Spring Boot 4.0.7;
@@ -21,13 +21,39 @@ JAVA_HOME="$HOME/.local/share/jdks/temurin-21" ./mvnw test
 
 | Метод | Endpoint | Назначение |
 | --- | --- | --- |
-| `POST` | `/api/v1/books` | Создать книгу |
+| `POST` | `/api/v1/books` | Одной multipart-операцией создать книгу и сохранить PDF |
 | `PATCH` | `/api/v1/books/{bookId}` | Обновить title/originalLanguage |
 | `DELETE` | `/api/v1/books/{bookId}` | Удалить книгу |
 | `POST` | `/api/v1/books/{bookId}/original` | Загрузить оригинал любого формата в S3 |
 | `POST` | `/api/v1/books/{bookId}/translated` | Загрузить переведённый PDF в S3 |
 
-Архитектурные пакеты: `controller`, `dto`, `service`, `repo`, `model`, `restclient`. Пакет `model` содержит JPA-сущности всех таблиц схемы `trans`. Внешние клиенты возвращают `Optional<?>`, пока контракты ответов соседних сервисов не определены.
+Архитектурные пакеты: `controller`, `dto`, `service`, `repo`, `model`, `restclient`. Пакет `model` содержит JPA-сущности схем `trans` и `scheduled-processes`.
+
+## Pipeline API
+
+- `POST /api/v1/books/{bookId}/translations` — идемпотентно запускает extraction → translation → build и возвращает 202;
+- `GET /api/v1/books/{bookId}/processes?targetLanguage=ru` — возвращает два состояния и вычисляемый процент перевода;
+- `/internal/v1/books/{bookId}/extraction/*` — idempotent batch/image/region/complete callbacks extractor;
+- `POST /internal/v1/books/{bookId}/build-result` — raw validated `application/pdf` callback builder.
+
+Внешние клиенты типизированы. Все внутренние вызовы используют
+`INTERNAL_SERVICE_TOKEN`. Один `PipelineTaskQueue` владеет bounded local queue;
+после рестарта `PipelineRecoveryService` восстанавливает `IN_PROGRESS` jobs из
+PostgreSQL.
+
+## Локальная проверка
+
+```bash
+JAVA_HOME="$HOME/.local/share/jdks/temurin-21" ./mvnw test
+RUN_DB_TESTS=true \
+  JAVA_HOME="$HOME/.local/share/jdks/temurin-21" \
+  ./mvnw test
+```
+
+Вторая команда ожидает только локальные PostgreSQL на `localhost:5434` и MinIO
+на `localhost:9000`, которые поднимаются через `compose.yaml`. Модель перевода
+в тестах не запускается.
+
 
 ## Database
 

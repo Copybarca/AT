@@ -78,6 +78,32 @@ public class S3BookFileStorage implements BookFileStorage {
     }
 
     @Override
+    public String storeTranslated(Long bookId, byte[] pdf) {
+        String key = "%s/%d/translated/%s-result.pdf".formatted(
+                prefix,
+                bookId,
+                UUID.randomUUID()
+        );
+        try {
+            s3Client.putObject(
+                    PutObjectRequest.builder()
+                            .bucket(bucket)
+                            .key(key)
+                            .contentType("application/pdf")
+                            .build(),
+                    RequestBody.fromBytes(pdf)
+            );
+            return "s3://%s/%s".formatted(bucket, key);
+        } catch (SdkException exception) {
+            throw new BookStorageException(
+                    "Could not upload translated PDF to S3",
+                    exception
+            );
+        }
+    }
+
+
+    @Override
     public byte[] read(String location) {
         URI uri = URI.create(location);
         if (!"s3".equalsIgnoreCase(uri.getScheme())

@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -37,6 +38,7 @@ public class ExtractionResultService {
     private final InsertionRepository insertions;
     private final InsertionTextRegionRepository regions;
     private final BookFileStorage storage;
+    private final ApplicationEventPublisher events;
 
     public ExtractionResultService(
             BookRepository books,
@@ -45,7 +47,8 @@ public class ExtractionResultService {
             SegmentRepository segments,
             InsertionRepository insertions,
             InsertionTextRegionRepository regions,
-            BookFileStorage storage
+            BookFileStorage storage,
+            ApplicationEventPublisher events
     ) {
         this.books = books;
         this.processes = processes;
@@ -54,6 +57,7 @@ public class ExtractionResultService {
         this.insertions = insertions;
         this.regions = regions;
         this.storage = storage;
+        this.events = events;
     }
 
     @Transactional
@@ -169,6 +173,9 @@ public class ExtractionResultService {
                 request.expectedRegionCount()
         );
         process.complete();
+        events.publishEvent(
+                new ExtractionCompletedEvent(process.getId(), bookId)
+        );
     }
 
     private PdfExtractionProcess requireProcess(Long bookId, Long processId) {

@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 @ExtendWith(MockitoExtension.class)
 class ExtractionResultServiceTest {
@@ -46,6 +47,9 @@ class ExtractionResultServiceTest {
     @Mock
     private PdfExtractionProcess process;
 
+    @Mock
+    private ApplicationEventPublisher events;
+
     private ExtractionResultService service;
 
     @BeforeEach
@@ -57,7 +61,8 @@ class ExtractionResultServiceTest {
                 segments,
                 insertions,
                 regions,
-                storage
+                storage,
+                events
         );
         when(processes.findById(91L)).thenReturn(Optional.of(process));
         when(process.getBookId()).thenReturn(42L);

@@ -1,9 +1,9 @@
 package io.copybarca.transapi.restclient;
 
 import io.copybarca.transapi.dto.client.TranslateTextRequest;
-import java.util.Optional;
+import io.copybarca.transapi.dto.client.TranslateTextResponse;
 
 public interface AgentFlowClient {
 
-    Optional<?> translate(TranslateTextRequest request);
+    TranslateTextResponse translate(TranslateTextRequest request);
 }

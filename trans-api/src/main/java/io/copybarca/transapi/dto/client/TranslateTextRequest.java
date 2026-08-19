@@ -1,6 +1,17 @@
 package io.copybarca.transapi.dto.client;
 
-import jakarta.validation.constraints.NotBlank;
+import java.util.List;
 
-public record TranslateTextRequest(@NotBlank String text) {
+public record TranslateTextRequest(
+        String requestId,
+        String stableKey,
+        String sourceHash,
+        String sourceLanguage,
+        String targetLanguage,
+        String sourceText,
+        String marker,
+        List<GlossaryTerm> glossary,
+        String strategy,
+        List<String> previousIssues
+) {
 }

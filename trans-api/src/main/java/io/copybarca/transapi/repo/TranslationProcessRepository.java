@@ -1,6 +1,8 @@
 package io.copybarca.transapi.repo;
 
+import io.copybarca.transapi.model.ProcessStatus;
 import io.copybarca.transapi.model.TranslationProcess;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -11,4 +13,11 @@ public interface TranslationProcessRepository
             Long bookId,
             String targetLanguage
     );
+
+    List<TranslationProcess> findByBookIdAndStatus(
+            Long bookId,
+            ProcessStatus status
+    );
+
+    List<TranslationProcess> findByStatus(ProcessStatus status);
 }

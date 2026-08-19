@@ -138,15 +138,21 @@ services:
       # Задаёт адрес будущего PDF Extractor вне этого Compose-файла.
       PDF_EXTRACTOR_BASE_URL: ${PDF_EXTRACTOR_BASE_URL:-http://host.docker.internal:8001}
       # Задаёт endpoint извлечения PDF.
-      PDF_EXTRACTOR_PATH: ${PDF_EXTRACTOR_PATH:-/api/v1/extract}
+      PDF_EXTRACTOR_PATH: ${PDF_EXTRACTOR_PATH:-/internal/v1/extractions}
       # Задаёт адрес будущего PDF Builder вне этого Compose-файла.
       PDF_BUILDER_BASE_URL: ${PDF_BUILDER_BASE_URL:-http://host.docker.internal:8002}
       # Задаёт endpoint сборки PDF.
-      PDF_BUILDER_PATH: ${PDF_BUILDER_PATH:-/api/v1/books/build}
+      PDF_BUILDER_PATH: ${PDF_BUILDER_PATH:-/internal/v1/builds}
       # Задаёт адрес будущего Agent Flow вне этого Compose-файла.
       AGENT_FLOW_BASE_URL: ${AGENT_FLOW_BASE_URL:-http://host.docker.internal:8003}
+      # Общий локальный bearer token межсервисных вызовов.
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-local-service-token}
+      # Ограничивает единую локальную очередь pipeline.
+      PIPELINE_QUEUE_CAPACITY: ${PIPELINE_QUEUE_CAPACITY:-16}
+      # Ограничивает параллельные pipeline workers.
+      PIPELINE_WORKER_COUNT: ${PIPELINE_WORKER_COUNT:-2}
       # Задаёт endpoint перевода текста.
-      AGENT_FLOW_PATH: ${AGENT_FLOW_PATH:-/api/v1/translate}
+      AGENT_FLOW_PATH: ${AGENT_FLOW_PATH:-/internal/v1/translations}
       # Ограничивает размер одного загружаемого файла.
       MAX_FILE_SIZE: ${MAX_FILE_SIZE:-100MB}
       # Ограничивает общий размер multipart-запроса.

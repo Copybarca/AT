@@ -165,4 +165,20 @@ public class Segment {
         this.translatable = false;
     }
 
+    public Integer getPhysicalPage() {
+        return physicalPage;
+    }
+
+    public String getBboxJson() {
+        return bboxJson;
+    }
+
+    public String getStyle() {
+        return style;
+    }
+
+    public boolean isTranslatable() {
+        return Boolean.TRUE.equals(translatable);
+    }
+
 }
