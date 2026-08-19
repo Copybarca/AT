@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from threading import RLock
 from typing import Self
 
@@ -39,6 +40,16 @@ class RuntimeFragmentationSettings:
 class ServiceSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="", extra="ignore")
 
+    trans_api_base_url: str = "http://localhost:8080"
+    service_token: str = "local-service-token"
+    extraction_queue_capacity: int = Field(default=4, ge=1)
+    extraction_worker_count: int = Field(default=1, ge=1)
+    extraction_batch_size: int = Field(default=100, ge=1)
+    extraction_temp_root: Path = Path("/tmp/pdf-extractor")
+    max_request_bytes: int = Field(default=1024 * 1024 * 1024, ge=1)
+    min_selectable_characters: int = Field(default=8, ge=1)
+    ocr_dpi: int = Field(default=300, ge=72, le=600)
+    ocr_language: str = "eng"
     fragment_min_sentences: int = Field(default=5, ge=1)
     fragment_max_sentences: int = Field(default=10, ge=1)
     fragment_boundary_tolerance_sentences: int = Field(default=2, ge=0)
