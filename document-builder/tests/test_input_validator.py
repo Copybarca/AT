@@ -119,7 +119,7 @@ def test_validator_rejects_missing_and_extra_assets(tmp_path: Path) -> None:
 def test_validator_rejects_declared_mime_that_differs_from_image_bytes(
     tmp_path: Path,
 ) -> None:
-    command = request([image(1)])
+    command = request([text(1), image(2)])
     incoming = IncomingAsset(
         asset_key="figure-001",
         filename="figure.png",
@@ -128,4 +128,18 @@ def test_validator_rejects_declared_mime_that_differs_from_image_bytes(
     )
 
     with pytest.raises(BuildInputValidationError, match="media type"):
+        validator(tmp_path).validate(command, (incoming,))
+
+def test_validator_rejects_document_without_text_control_elements(
+    tmp_path: Path,
+) -> None:
+    command = request([image(1)])
+    incoming = IncomingAsset(
+        asset_key="figure-001",
+        filename="figure.png",
+        media_type="image/png",
+        content=png_bytes(),
+    )
+
+    with pytest.raises(BuildInputValidationError, match="at least one TEXT"):
         validator(tmp_path).validate(command, (incoming,))

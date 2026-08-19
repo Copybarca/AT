@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from hashlib import sha256
 from io import BytesIO
 from pathlib import Path
+from typing import BinaryIO
 
 from PIL import Image, UnidentifiedImageError
 
@@ -28,7 +29,14 @@ class IncomingAsset:
     asset_key: str
     filename: str
     media_type: str
-    content: bytes
+    content: bytes | None = None
+    source_path: Path | None = None
+
+    def __post_init__(self) -> None:
+        if (self.content is None) == (self.source_path is None):
+            raise ValueError(
+                "IncomingAsset requires exactly one of content or source_path"
+            )
 
 
 class BuildInputValidator:
@@ -42,6 +50,8 @@ class BuildInputValidator:
     ) -> BuildInput:
         if len(request.elements) > self._settings.build_max_elements:
             raise BuildInputValidationError("Element limit exceeded")
+        if not any(item.type is ElementType.TEXT for item in request.elements):
+            raise BuildInputValidationError("Document requires at least one TEXT element")
 
         ordered = tuple(sorted(request.elements, key=lambda item: item.sequential_number))
         expected_numbers = list(range(1, len(ordered) + 1))
@@ -108,12 +118,13 @@ class BuildInputValidator:
         elements: tuple,
         job_directory: Path,
     ) -> BuildAsset:
-        if len(incoming.content) > self._settings.build_max_image_bytes:
+        source_size = _asset_size(incoming)
+        if source_size > self._settings.build_max_image_bytes:
             raise BuildInputValidationError("Image byte limit exceeded")
 
         element = next(item for item in elements if item.asset_key == incoming.asset_key)
         try:
-            with Image.open(BytesIO(incoming.content)) as image:
+            with Image.open(_asset_source(incoming)) as image:
                 image.verify()
                 image_format = image.format
                 width, height = image.size
@@ -135,14 +146,29 @@ class BuildInputValidator:
 
         extension = "png" if actual_media_type == "image/png" else "jpg"
         target = job_directory / f"asset-{index:04d}.{extension}"
-        target.write_bytes(incoming.content)
-        digest = sha256(incoming.content).hexdigest()
+        digest = sha256()
+        with _asset_source(incoming) as source, target.open("wb") as destination:
+            while chunk := source.read(1024 * 1024):
+                digest.update(chunk)
+                destination.write(chunk)
         return BuildAsset(
             asset_key=incoming.asset_key,
             path=target,
             media_type=actual_media_type,
-            sha256=f"sha256:{digest}",
-            size=len(incoming.content),
+            sha256=f"sha256:{digest.hexdigest()}",
+            size=source_size,
             width=width,
             height=height,
         )
+
+
+def _asset_size(incoming: IncomingAsset) -> int:
+    if incoming.source_path is not None:
+        return incoming.source_path.stat().st_size
+    return len(incoming.content or b"")
+
+
+def _asset_source(incoming: IncomingAsset) -> BinaryIO:
+    if incoming.source_path is not None:
+        return incoming.source_path.open("rb")
+    return BytesIO(incoming.content or b"")
