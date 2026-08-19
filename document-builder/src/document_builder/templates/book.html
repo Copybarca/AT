@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="{{ document.language }}">
+<head>
+  <meta charset="utf-8">
+  <title>{{ document.title }}</title>
+  <style>{{ css | safe }}</style>
+</head>
+<body>
+{% macro render_text(element) -%}
+  {% if element.style == "TITLE" %}
+    <h1 class="cover-title">{{ element.text }}</h1>
+  {% elif element.style == "SUBTITLE" %}
+    <p class="cover-subtitle">{{ element.text }}</p>
+  {% elif element.style == "AUTHOR" %}
+    <p class="cover-author">{{ element.text }}</p>
+  {% elif element.style == "CHAPTER" %}
+    <h1 class="chapter">{{ element.text }}</h1>
+  {% elif element.style == "HEADING_1" %}
+    <h1>{{ element.text }}</h1>
+  {% elif element.style == "HEADING_2" %}
+    <h2>{{ element.text }}</h2>
+  {% elif element.style == "HEADING_3" %}
+    <h3>{{ element.text }}</h3>
+  {% elif element.style == "FIGURE_CAPTION" %}
+    <figcaption>{{ element.text }}</figcaption>
+  {% elif element.style == "NOTE" %}
+    <aside class="note">{{ element.text }}</aside>
+  {% elif element.style == "CODE" %}
+    <pre class="code">{{ element.text }}</pre>
+  {% else %}
+    <p class="body">{{ element.text }}</p>
+  {% endif %}
+{%- endmacro %}
+
+{% macro render_element(element) -%}
+  {% if element.type == "IMAGE" %}
+    <img src="{{ element.asset_uri }}" alt="{{ element.alt_text or '' }}">
+  {% else %}
+    {{ render_text(element) }}
+  {% endif %}
+{%- endmacro %}
+
+{% for block in document.blocks %}
+  {% if block.kind.value == "LIST" %}
+    <ul class="book-list">
+    {% for element in block.elements %}<li>{{ element.text }}</li>{% endfor %}
+    </ul>
+  {% elif block.kind.value in ["FIGURE", "FIGURE_WITH_CAPTION"] %}
+    <figure class="figure-with-caption">
+    {% for element in block.elements %}{{ render_element(element) }}{% endfor %}
+    </figure>
+  {% elif block.kind.value == "HEADING_WITH_CONTENT" %}
+    <section class="heading-with-content">
+    {% for element in block.elements %}{{ render_element(element) }}{% endfor %}
+    </section>
+  {% else %}
+    {% for element in block.elements %}{{ render_element(element) }}{% endfor %}
+  {% endif %}
+{% endfor %}
+</body>
+</html>
