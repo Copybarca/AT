@@ -37,7 +37,6 @@ class PdfRenderer:
         self._settings = settings
 
     def render(self, html: str, asset_root: Path, output_path: Path) -> None:
-        del self._settings
         fetcher = URLFetcher(allowed_protocols=("file",), fail_on_errors=True)
         try:
             document = HTML(

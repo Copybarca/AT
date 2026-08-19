@@ -44,3 +44,17 @@ def test_weasyprint_output_passes_independent_pdf_validation(tmp_path: Path) -> 
     assert report.blank_pages == 0
     assert report.image_instances >= 1
     assert report.issues == ()
+
+def test_one_renderer_instance_can_render_multiple_jobs(tmp_path: Path) -> None:
+    snapshot = build_input(tmp_path)
+    settings = ServiceSettings(_env_file=None, build_temp_root=tmp_path)
+    renderer = PdfRenderer(settings)
+    html = HtmlRenderer().render(snapshot)
+    first = snapshot.job_directory / "first.pdf"
+    second = snapshot.job_directory / "second.pdf"
+
+    renderer.render(html, snapshot.job_directory, first)
+    renderer.render(html, snapshot.job_directory, second)
+
+    assert first.read_bytes().startswith(b"%PDF-")
+    assert second.read_bytes().startswith(b"%PDF-")
