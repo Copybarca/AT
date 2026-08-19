@@ -23,11 +23,23 @@ public class Insertion {
     @Column(nullable = false, columnDefinition = "text")
     private String path;
 
+    @Column(name = "media_type", length = 64)
+    private String mediaType;
+
+    @Column(length = 80)
+    private String checksum;
+
     protected Insertion() {
     }
 
     public Insertion(String path) {
         this.path = path;
+    }
+
+    public Insertion(String path, String mediaType, String checksum) {
+        this.path = path;
+        this.mediaType = mediaType;
+        this.checksum = checksum;
     }
 
     public Long getId() {
@@ -40,5 +52,13 @@ public class Insertion {
 
     public void setPath(String path) {
         this.path = path;
+    }
+
+    public String getMediaType() {
+        return mediaType;
+    }
+
+    public String getChecksum() {
+        return checksum;
     }
 }

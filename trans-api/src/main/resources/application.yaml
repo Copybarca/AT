@@ -34,13 +34,17 @@ storage:
 clients:
   pdf-extractor:
     base-url: ${PDF_EXTRACTOR_BASE_URL:http://localhost:8001}
-    extract-path: ${PDF_EXTRACTOR_PATH:/api/v1/extract}
+    extract-path: ${PDF_EXTRACTOR_PATH:/internal/v1/extractions}
   pdf-builder:
     base-url: ${PDF_BUILDER_BASE_URL:http://localhost:8002}
-    build-path: ${PDF_BUILDER_PATH:/api/v1/books/build}
+    build-path: ${PDF_BUILDER_PATH:/internal/v1/builds}
   agent-flow:
     base-url: ${AGENT_FLOW_BASE_URL:http://localhost:8003}
-    translate-path: ${AGENT_FLOW_PATH:/api/v1/translate}
+    translate-path: ${AGENT_FLOW_PATH:/internal/v1/translations}
+
+
+internal:
+  service-token: ${INTERNAL_SERVICE_TOKEN:local-service-token}
 
 management:
   endpoints:

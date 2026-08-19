@@ -19,6 +19,7 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 
 @Service
 public class S3BookFileStorage implements BookFileStorage {
@@ -67,11 +68,40 @@ public class S3BookFileStorage implements BookFileStorage {
     }
 
     @Override
+    public String storeAsset(Long bookId, MultipartFile file) {
+        return store(bookId, "assets", file);
+    }
+
+    @Override
     public String storeTranslated(Long bookId, MultipartFile file) {
         return store(bookId, "translated", file);
     }
 
+    @Override
+    public byte[] read(String location) {
+        URI uri = URI.create(location);
+        if (!"s3".equalsIgnoreCase(uri.getScheme())
+                || !StringUtils.hasText(uri.getHost())
+                || !StringUtils.hasText(uri.getPath())) {
+            throw new BookStorageException(
+                    "Stored book path is not a valid S3 URI",
+                    new IllegalArgumentException(location)
+            );
+        }
+        try {
+            return s3Client.getObjectAsBytes(
+                    GetObjectRequest.builder()
+                            .bucket(uri.getHost())
+                            .key(uri.getPath().substring(1))
+                            .build()
+            ).asByteArray();
+        } catch (SdkException exception) {
+            throw new BookStorageException("Could not read book file from S3", exception);
+        }
+    }
+
     private String store(Long bookId, String kind, MultipartFile file) {
+
         String filename = sanitizeFilename(file.getOriginalFilename());
         String key = "%s/%d/%s/%s-%s".formatted(
                 prefix,

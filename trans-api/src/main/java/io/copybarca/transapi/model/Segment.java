@@ -68,6 +68,18 @@ public class Segment {
     @Column(name = "sequential_number", nullable = false)
     private Integer sequentialNumber;
 
+    @Column(name = "physical_page")
+    private Integer physicalPage;
+
+    @Column(name = "bbox_json", columnDefinition = "text")
+    private String bboxJson;
+
+    @Column(length = 32)
+    private String style;
+
+    @Column(nullable = false)
+    private Boolean translatable = true;
+
     protected Segment() {
     }
 
@@ -120,4 +132,37 @@ public class Segment {
     public void setSequentialNumber(Integer sequentialNumber) {
         this.sequentialNumber = sequentialNumber;
     }
+
+    public void applyTextExtraction(
+            TextSegment textSegment,
+            Integer sequentialNumber,
+            Integer physicalPage,
+            String bboxJson,
+            String style,
+            boolean translatable
+    ) {
+        this.textSegment = textSegment;
+        this.insertion = null;
+        this.sequentialNumber = sequentialNumber;
+        this.physicalPage = physicalPage;
+        this.bboxJson = bboxJson;
+        this.style = style;
+        this.translatable = translatable;
+    }
+
+    public void applyImageExtraction(
+            Insertion insertion,
+            Integer sequentialNumber,
+            Integer physicalPage,
+            String bboxJson
+    ) {
+        this.insertion = insertion;
+        this.textSegment = null;
+        this.sequentialNumber = sequentialNumber;
+        this.physicalPage = physicalPage;
+        this.bboxJson = bboxJson;
+        this.style = null;
+        this.translatable = false;
+    }
+
 }

@@ -1,6 +1,8 @@
 package io.copybarca.transapi.dto.client;
 
-import jakarta.validation.constraints.NotBlank;
-
-public record PdfExtractRequest(@NotBlank String path) {
+public record PdfExtractRequest(
+        Long processId,
+        Long bookId,
+        String sourceSha256
+) {
 }

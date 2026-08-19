@@ -1,6 +1,8 @@
 package io.copybarca.transapi.controller;
 
 import io.copybarca.transapi.service.exception.BookNotFoundException;
+import io.copybarca.transapi.service.ExtractionCountMismatchException;
+import io.copybarca.transapi.service.InternalServiceUnauthorizedException;
 import io.copybarca.transapi.service.exception.BookStorageException;
 import io.copybarca.transapi.service.exception.InvalidBookFileException;
 import org.springframework.http.HttpStatus;
@@ -24,6 +26,17 @@ public class ApiExceptionHandler {
     @ExceptionHandler(BookStorageException.class)
     ProblemDetail handleStorage(BookStorageException exception) {
         return problem(HttpStatus.BAD_GATEWAY, exception.getMessage());
+    }
+
+
+    @ExceptionHandler(ExtractionCountMismatchException.class)
+    ProblemDetail handleConflict(ExtractionCountMismatchException exception) {
+        return problem(HttpStatus.CONFLICT, exception.getMessage());
+    }
+
+    @ExceptionHandler(InternalServiceUnauthorizedException.class)
+    ProblemDetail handleUnauthorized(InternalServiceUnauthorizedException exception) {
+        return problem(HttpStatus.UNAUTHORIZED, exception.getMessage());
     }
 
     private static ProblemDetail problem(HttpStatus status, String detail) {
