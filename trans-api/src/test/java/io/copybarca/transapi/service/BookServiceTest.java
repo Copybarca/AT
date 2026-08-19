@@ -93,6 +93,48 @@ class BookServiceTest {
         verify(bookRepository).delete(book);
     }
 
+    @Test
+    void createsBookAndStoresOriginalPdfInOneOperation() {
+        var file = new MockMultipartFile(
+                "file",
+                "manual.pdf",
+                "application/pdf",
+                "%PDF-1.7\nsynthetic".getBytes()
+        );
+        when(bookRepository.save(any(Book.class))).thenAnswer(invocation -> {
+            Book book = invocation.getArgument(0);
+            book.setId(12L);
+            return book;
+        });
+        when(bookFileStorage.storeOriginal(12L, file))
+                .thenReturn("s3://trans-books/books/12/original/manual.pdf");
+
+        var response = bookService.createBook(file, null, "eng");
+
+        assertEquals(12L, response.id());
+        assertEquals("manual", response.title());
+        assertEquals("eng", response.originalLanguage());
+        assertEquals(
+                "s3://trans-books/books/12/original/manual.pdf",
+                response.path()
+        );
+    }
+
+    @Test
+    void rejectsFakePdfEvenWhenFilenameAndMediaTypeClaimPdf() {
+        var file = new MockMultipartFile(
+                "file",
+                "fake.pdf",
+                "application/pdf",
+                "not a pdf".getBytes()
+        );
+
+        assertThrows(
+                InvalidBookFileException.class,
+                () -> bookService.createBook(file, "Fake", "eng")
+        );
+    }
+
     private static Book book(Long id) {
         var book = new Book("Book", "eng");
         book.setId(id);

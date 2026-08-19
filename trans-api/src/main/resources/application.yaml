@@ -47,3 +47,8 @@ management:
     web:
       exposure:
         include: health,info
+
+pipeline:
+  queue:
+    capacity: ${PIPELINE_QUEUE_CAPACITY:16}
+    worker-count: ${PIPELINE_WORKER_COUNT:2}

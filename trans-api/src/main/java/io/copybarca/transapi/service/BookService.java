@@ -7,6 +7,9 @@ import io.copybarca.transapi.model.Book;
 import io.copybarca.transapi.repo.BookRepository;
 import io.copybarca.transapi.service.exception.BookNotFoundException;
 import io.copybarca.transapi.service.exception.InvalidBookFileException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -23,6 +26,30 @@ public class BookService {
     public BookService(BookRepository bookRepository, BookFileStorage bookFileStorage) {
         this.bookRepository = bookRepository;
         this.bookFileStorage = bookFileStorage;
+    }
+
+
+    @Transactional
+    public BookResponse createBook(
+            MultipartFile file,
+            String title,
+            String originalLanguage
+    ) {
+        requireNonEmpty(file);
+        requirePdfSignature(file);
+        if (!StringUtils.hasText(originalLanguage)
+                || originalLanguage.trim().length() > 3) {
+            throw new IllegalArgumentException(
+                    "Original language must contain at most three characters"
+            );
+        }
+
+        String resolvedTitle = resolveTitle(title, file.getOriginalFilename());
+        Book book = bookRepository.save(
+                new Book(resolvedTitle, originalLanguage.trim())
+        );
+        book.setPath(bookFileStorage.storeOriginal(book.getId(), file));
+        return toResponse(book);
     }
 
     @Transactional
@@ -85,7 +112,44 @@ public class BookService {
         if (file == null || file.isEmpty()) {
             throw new InvalidBookFileException("Book file must not be empty");
         }
+
     }
+    private static void requirePdfSignature(MultipartFile file) {
+        try (InputStream input = file.getInputStream()) {
+            String signature = new String(
+                    input.readNBytes(5),
+                    StandardCharsets.US_ASCII
+            );
+            if (!"%PDF-".equals(signature)) {
+                throw new InvalidBookFileException(
+                        "Original book must have a valid PDF signature"
+                );
+            }
+        } catch (IOException exception) {
+            throw new InvalidBookFileException("Could not read original PDF");
+        }
+    }
+
+    private static String resolveTitle(String title, String originalFilename) {
+        String resolved = title;
+        if (!StringUtils.hasText(resolved)) {
+            String filename = StringUtils.hasText(originalFilename)
+                    ? originalFilename.replace('\\', '/')
+                    : "book.pdf";
+            filename = filename.substring(filename.lastIndexOf('/') + 1);
+            resolved = filename.toLowerCase(Locale.ROOT).endsWith(".pdf")
+                    ? filename.substring(0, filename.length() - 4)
+                    : filename;
+        }
+        resolved = resolved.trim();
+        if (resolved.isEmpty() || resolved.length() > 128) {
+            throw new IllegalArgumentException(
+                    "Book title must contain between 1 and 128 characters"
+            );
+        }
+        return resolved;
+    }
+
 
     private static void requirePdf(MultipartFile file) {
         String filename = file.getOriginalFilename();

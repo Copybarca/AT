@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -28,9 +29,25 @@ public class BookController {
         this.bookService = bookService;
     }
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<BookResponse> addBook(@Valid @RequestBody CreateBookRequest request) {
         BookResponse response = bookService.addBook(request);
+        return ResponseEntity
+                .created(URI.create("/api/v1/books/" + response.id()))
+                .body(response);
+
+    }
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<BookResponse> addBookWithOriginal(
+            @RequestPart("file") MultipartFile file,
+            @RequestParam(required = false) String title,
+            @RequestParam String originalLanguage
+    ) {
+        BookResponse response = bookService.createBook(
+                file,
+                title,
+                originalLanguage
+        );
         return ResponseEntity
                 .created(URI.create("/api/v1/books/" + response.id()))
                 .body(response);
