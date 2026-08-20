@@ -9,6 +9,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -54,6 +55,16 @@ public class PipelineTaskQueue implements AutoCloseable {
             String fingerprint,
             Runnable task
     ) {
+        return submit(taskKey, fingerprint, task, ignored -> {
+        });
+    }
+
+    public QueueSubmitOutcome submit(
+            String taskKey,
+            String fingerprint,
+            Runnable task,
+            Consumer<Throwable> failureHandler
+    ) {
         String existing = fingerprints.putIfAbsent(taskKey, fingerprint);
         if (existing != null) {
             return existing.equals(fingerprint)
@@ -62,7 +73,7 @@ public class PipelineTaskQueue implements AutoCloseable {
         }
 
         try {
-            executor.execute(() -> execute(taskKey, fingerprint, task));
+            executor.execute(() -> execute(taskKey, fingerprint, task, failureHandler));
             return QueueSubmitOutcome.ACCEPTED;
         } catch (RejectedExecutionException exception) {
             fingerprints.remove(taskKey, fingerprint);
@@ -70,12 +81,30 @@ public class PipelineTaskQueue implements AutoCloseable {
         }
     }
 
-    private void execute(String taskKey, String fingerprint, Runnable task) {
+    private void execute(
+            String taskKey,
+            String fingerprint,
+            Runnable task,
+            Consumer<Throwable> failureHandler
+    ) {
         try {
             task.run();
         } catch (RuntimeException | Error exception) {
-            fingerprints.remove(taskKey, fingerprint);
             LOGGER.error("Pipeline task {} failed", taskKey, exception);
+            try {
+                failureHandler.accept(exception);
+            } catch (RuntimeException | Error failureException) {
+                LOGGER.error(
+                        "Could not persist failure for pipeline task {}",
+                        taskKey,
+                        failureException
+                );
+            }
+        } finally {
+            // Dedupe only queued/running local work. Downstream commands have a
+            // stable Idempotency-Key, and fragment callbacks must schedule the
+            // same process key again for the next SQL row.
+            fingerprints.remove(taskKey, fingerprint);
         }
     }
 

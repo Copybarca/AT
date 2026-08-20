@@ -18,12 +18,19 @@ import io.copybarca.transapi.repo.TranslationProgress;
 import io.copybarca.transapi.service.exception.BookNotFoundException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 
 @Service
 public class PipelineProcessService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(PipelineProcessService.class);
 
     private final BookRepository books;
     private final PdfExtractionProcessRepository extractions;
@@ -32,8 +39,10 @@ public class PipelineProcessService {
     private final SegmentRepository segments;
     private final PipelineTaskQueue queue;
     private final PdfExtractionDispatchService extractionDispatcher;
-
     private final TranslationPipelineService translationPipeline;
+    private final PdfBuildDispatchService buildDispatcher;
+    private final PipelineFailureService failures;
+
     public PipelineProcessService(
             BookRepository books,
             PdfExtractionProcessRepository extractions,
@@ -42,7 +51,9 @@ public class PipelineProcessService {
             SegmentRepository segments,
             PipelineTaskQueue queue,
             PdfExtractionDispatchService extractionDispatcher,
-            TranslationPipelineService translationPipeline
+            TranslationPipelineService translationPipeline,
+            PdfBuildDispatchService buildDispatcher,
+            PipelineFailureService failures
     ) {
         this.books = books;
         this.extractions = extractions;
@@ -52,6 +63,8 @@ public class PipelineProcessService {
         this.queue = queue;
         this.extractionDispatcher = extractionDispatcher;
         this.translationPipeline = translationPipeline;
+        this.buildDispatcher = buildDispatcher;
+        this.failures = failures;
     }
 
     @Transactional
@@ -71,36 +84,62 @@ public class PipelineProcessService {
                         new TranslationProcess(book, language)
                 ));
 
+        if (extraction.getStatus() == ProcessStatus.FAILED) {
+            extraction.restart();
+        }
         if (extraction.getStatus() == ProcessStatus.IN_PROGRESS) {
-            QueueSubmitOutcome outcome = queue.submit(
-                    "extraction:" + extraction.getId(),
-                    bookId + ":" + book.getPath(),
-                    () -> extractionDispatcher.dispatch(
-                            extraction.getId(),
-                            bookId,
-                            book.getPath()
+            Long processId = extraction.getId();
+            String originalPath = book.getPath();
+            scheduleAfterCommit(
+                    "extraction",
+                    processId,
+                    () -> queue.submit(
+                            "extraction:" + processId,
+                            bookId + ":" + originalPath,
+                            () -> extractionDispatcher.dispatch(
+                                    processId,
+                                    bookId,
+                                    originalPath
+                            ),
+                            ignored -> failures.failExtraction(processId)
                     )
             );
-            if (outcome == QueueSubmitOutcome.FULL) {
-                throw new PipelineQueueFullException();
+        } else {
+            if (translation.getStatus() == ProcessStatus.FAILED) {
+                translation.restart();
             }
-            if (outcome == QueueSubmitOutcome.CONFLICT) {
-                throw new IllegalStateException(
-                        "Extraction process was submitted with conflicting input"
-                );
-            }
-        } else if (translation.getStatus() == ProcessStatus.IN_PROGRESS) {
-            QueueSubmitOutcome outcome = queue.submit(
-                    "translation:" + translation.getId(),
-                    bookId + ":" + language,
-                    () -> translationPipeline.run(translation.getId())
+        }
+        if (extraction.getStatus() == ProcessStatus.COMPLETED
+                && translation.getStatus() == ProcessStatus.IN_PROGRESS) {
+            Long processId = translation.getId();
+            scheduleAfterCommit(
+                    "translation",
+                    processId,
+                    () -> queue.submit(
+                            "translation:" + processId,
+                            bookId + ":" + language,
+                            () -> translationPipeline.run(processId),
+                            ignored -> failures.failTranslation(processId)
+                    )
             );
-            if (outcome == QueueSubmitOutcome.FULL) {
-                throw new PipelineQueueFullException();
+        } else if (extraction.getStatus() == ProcessStatus.COMPLETED
+                && translation.getStatus() == ProcessStatus.COMPLETED) {
+            PdfBuildProcess build = builds.findByBook_IdAndTargetLanguage(bookId, language)
+                    .orElseGet(() -> builds.save(new PdfBuildProcess(book, language)));
+            if (build.getStatus() == ProcessStatus.FAILED) {
+                build.restart();
             }
-            if (outcome == QueueSubmitOutcome.CONFLICT) {
-                throw new IllegalStateException(
-                        "Translation process was submitted with conflicting input"
+            if (build.getStatus() == ProcessStatus.IN_PROGRESS) {
+                Long processId = build.getId();
+                scheduleAfterCommit(
+                        "build",
+                        processId,
+                        () -> queue.submit(
+                                "build:" + processId,
+                                bookId + ":" + language,
+                                () -> buildDispatcher.dispatch(processId),
+                                ignored -> failures.failBuild(processId)
+                        )
                 );
             }
         }
@@ -164,5 +203,32 @@ public class PipelineProcessService {
                         2,
                         RoundingMode.HALF_UP
                 );
+    }
+
+    private static void scheduleAfterCommit(
+            String stage,
+            Long processId,
+            Supplier<QueueSubmitOutcome> submission
+    ) {
+        Runnable dispatch = () -> {
+            QueueSubmitOutcome outcome = submission.get();
+            if (outcome == QueueSubmitOutcome.FULL) {
+                LOGGER.warn("{} queue is full for process {}", stage, processId);
+            } else if (outcome == QueueSubmitOutcome.CONFLICT) {
+                LOGGER.error("{} process {} has conflicting input", stage, processId);
+            }
+        };
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            dispatch.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        dispatch.run();
+                    }
+                }
+        );
     }
 }

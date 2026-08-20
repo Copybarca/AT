@@ -14,6 +14,8 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Component
 public class PipelineEventListener {
@@ -28,6 +30,7 @@ public class PipelineEventListener {
     private final BookRepository books;
     private final PdfBuildDispatchService buildDispatch;
     private final PipelineTaskQueue queue;
+    private final PipelineFailureService failures;
 
     public PipelineEventListener(
             TranslationProcessRepository translations,
@@ -35,7 +38,8 @@ public class PipelineEventListener {
             PdfBuildProcessRepository builds,
             BookRepository books,
             PdfBuildDispatchService buildDispatch,
-            PipelineTaskQueue queue
+            PipelineTaskQueue queue,
+            PipelineFailureService failures
     ) {
         this.translations = translations;
         this.translationPipeline = translationPipeline;
@@ -43,6 +47,7 @@ public class PipelineEventListener {
         this.books = books;
         this.buildDispatch = buildDispatch;
         this.queue = queue;
+        this.failures = failures;
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -66,21 +71,48 @@ public class PipelineEventListener {
                 .orElseGet(() -> builds.saveAndFlush(
                         new PdfBuildProcess(book, event.targetLanguage())
                 ));
+        Long processId = process.getId();
+        Long bookId = process.getBookId();
+        String targetLanguage = process.getTargetLanguage();
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(
+                    new TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            submitBuild(processId, bookId, targetLanguage);
+                        }
+                    }
+            );
+        } else {
+            submitBuild(processId, bookId, targetLanguage);
+        }
+    }
+
+    private void submitBuild(Long processId, Long bookId, String targetLanguage) {
         QueueSubmitOutcome outcome = queue.submit(
-                "build:" + process.getId(),
-                process.getBookId() + ":" + process.getTargetLanguage(),
-                () -> buildDispatch.dispatch(process.getId())
+                "build:" + processId,
+                bookId + ":" + targetLanguage,
+                () -> buildDispatch.dispatch(processId),
+                ignored -> failures.failBuild(processId)
         );
         if (outcome == QueueSubmitOutcome.FULL) {
-            LOGGER.warn("Build queue is full for process {}", process.getId());
+            LOGGER.warn("Build queue is full for process {}", processId);
         }
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void afterTranslationFragment(TranslationFragmentStoredEvent event) {
+        translations.findById(event.processId())
+                .filter(process -> process.getStatus() == ProcessStatus.IN_PROGRESS)
+                .ifPresent(this::submitTranslation);
     }
 
     private void submitTranslation(TranslationProcess process) {
         QueueSubmitOutcome outcome = queue.submit(
                 "translation:" + process.getId(),
                 process.getBookId() + ":" + process.getTargetLanguage(),
-                () -> translationPipeline.run(process.getId())
+                () -> translationPipeline.run(process.getId()),
+                ignored -> failures.failTranslation(process.getId())
         );
         if (outcome == QueueSubmitOutcome.FULL) {
             LOGGER.warn(

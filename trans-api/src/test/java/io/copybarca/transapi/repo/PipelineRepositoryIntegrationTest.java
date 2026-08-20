@@ -51,7 +51,7 @@ class PipelineRepositoryIntegrationTest {
     private PdfBuildProcessRepository builds;
 
     @Test
-    void persistsAllThreeProcessTypesWithTwoStateLifecycle() {
+    void persistsAllThreeProcessTypesWithFailureLifecycle() {
         Book book = books.save(new Book("Book", "eng"));
 
         PdfExtractionProcess extraction = extractions.save(new PdfExtractionProcess(book));
@@ -71,6 +71,17 @@ class PipelineRepositoryIntegrationTest {
         assertEquals(ProcessStatus.COMPLETED, extraction.getStatus());
         assertEquals(ProcessStatus.COMPLETED, translation.getStatus());
         assertEquals(ProcessStatus.COMPLETED, build.getStatus());
+
+        extraction.restart();
+        translation.restart();
+        build.restart();
+        extraction.fail();
+        translation.fail();
+        build.fail();
+
+        assertEquals(ProcessStatus.FAILED, extraction.getStatus());
+        assertEquals(ProcessStatus.FAILED, translation.getStatus());
+        assertEquals(ProcessStatus.FAILED, build.getStatus());
     }
 
     @Test

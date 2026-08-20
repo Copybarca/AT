@@ -31,10 +31,18 @@ JAVA_HOME="$HOME/.local/share/jdks/temurin-21" ./mvnw test
 
 ## Pipeline API
 
-- `POST /api/v1/books/{bookId}/translations` — идемпотентно запускает extraction → translation → build и возвращает 202;
+- `POST /api/v1/books/{bookId}/translations` — идемпотентно запускает extraction → пофрагментный translation → build и возвращает 202; повторный вызов продолжает процесс со статуса `FAILED`;
 - `GET /api/v1/books/{bookId}/processes?targetLanguage=ru` — возвращает два состояния и вычисляемый процент перевода;
 - `/internal/v1/books/{bookId}/extraction/*` — idempotent batch/image/region/complete callbacks extractor;
+- `POST /internal/v1/books/{bookId}/translations/{processId}/fragments/{segmentId}` — callback агента с результатом одного SQL-сегмента;
 - `POST /internal/v1/books/{bookId}/build-result` — raw validated `application/pdf` callback builder.
+
+`trans-api` выбирает из PostgreSQL не более одного следующего непереведённого
+сегмента и отправляет его в `trans-flow`. После callback перевод валидируется и
+сохраняется отдельной транзакцией; событие после commit запускает следующий
+выбор. Поэтому прогресс `translatedFragments / totalFragments` виден после
+каждого принятого фрагмента. Невосстановимая ошибка переводит процесс в
+`FAILED`, а уже сохранённые переводы остаются доступными для продолжения.
 
 Внешние клиенты типизированы. Все внутренние вызовы используют
 `INTERNAL_SERVICE_TOKEN`. Один `PipelineTaskQueue` владеет bounded local queue;

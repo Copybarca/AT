@@ -24,6 +24,7 @@ public class PipelineRecoveryService implements ApplicationRunner {
     private final TranslationPipelineService translationPipeline;
     private final PdfBuildDispatchService buildDispatch;
     private final PipelineTaskQueue queue;
+    private final PipelineFailureService failures;
 
     public PipelineRecoveryService(
             PdfExtractionProcessRepository extractions,
@@ -33,7 +34,8 @@ public class PipelineRecoveryService implements ApplicationRunner {
             PdfExtractionDispatchService extractionDispatch,
             TranslationPipelineService translationPipeline,
             PdfBuildDispatchService buildDispatch,
-            PipelineTaskQueue queue
+            PipelineTaskQueue queue,
+            PipelineFailureService failures
     ) {
         this.extractions = extractions;
         this.translations = translations;
@@ -43,6 +45,7 @@ public class PipelineRecoveryService implements ApplicationRunner {
         this.translationPipeline = translationPipeline;
         this.buildDispatch = buildDispatch;
         this.queue = queue;
+        this.failures = failures;
     }
 
     @Override
@@ -58,7 +61,8 @@ public class PipelineRecoveryService implements ApplicationRunner {
                             process.getId(),
                             process.getBookId(),
                             book.getPath()
-                    )
+                    ),
+                    ignored -> failures.failExtraction(process.getId())
             );
         }
         for (TranslationProcess process : translations.findByStatus(
@@ -72,7 +76,8 @@ public class PipelineRecoveryService implements ApplicationRunner {
                 queue.submit(
                         "translation:" + process.getId(),
                         process.getBookId() + ":" + process.getTargetLanguage(),
-                        () -> translationPipeline.run(process.getId())
+                        () -> translationPipeline.run(process.getId()),
+                        ignored -> failures.failTranslation(process.getId())
                 );
             }
         }
@@ -82,7 +87,8 @@ public class PipelineRecoveryService implements ApplicationRunner {
             queue.submit(
                     "build:" + process.getId(),
                     process.getBookId() + ":" + process.getTargetLanguage(),
-                    () -> buildDispatch.dispatch(process.getId())
+                    () -> buildDispatch.dispatch(process.getId()),
+                    ignored -> failures.failBuild(process.getId())
             );
         }
     }

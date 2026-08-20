@@ -69,6 +69,24 @@ class PipelineTaskQueueTest {
         }
     }
 
+    @Test
+    void completedTaskCanBeUsedForTheNextFragment() throws Exception {
+        CountDownLatch first = new CountDownLatch(1);
+        CountDownLatch second = new CountDownLatch(1);
+        try (PipelineTaskQueue queue = new PipelineTaskQueue(1, 1)) {
+            assertEquals(
+                    QueueSubmitOutcome.ACCEPTED,
+                    queue.submit("translation-1", "fragment-1", first::countDown)
+            );
+            assertTrue(first.await(1, TimeUnit.SECONDS));
+            awaitCondition(() ->
+                    queue.submit("translation-1", "fragment-2", second::countDown)
+                            == QueueSubmitOutcome.ACCEPTED
+            );
+            assertTrue(second.await(1, TimeUnit.SECONDS));
+        }
+    }
+
     private static void await(CountDownLatch latch) {
         try {
             latch.await();

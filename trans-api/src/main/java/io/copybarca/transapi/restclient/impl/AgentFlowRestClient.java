@@ -1,7 +1,7 @@
 package io.copybarca.transapi.restclient.impl;
 
 import io.copybarca.transapi.dto.client.TranslateTextRequest;
-import io.copybarca.transapi.dto.client.TranslateTextResponse;
+import io.copybarca.transapi.dto.client.TranslationDispatchAcceptedResponse;
 import io.copybarca.transapi.restclient.AgentFlowClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -26,15 +26,25 @@ public class AgentFlowRestClient implements AgentFlowClient {
     }
 
     @Override
-    public TranslateTextResponse translate(TranslateTextRequest request) {
-        TranslateTextResponse response = restClient.post()
+    public TranslationDispatchAcceptedResponse submit(TranslateTextRequest request) {
+        TranslationDispatchAcceptedResponse response = restClient.post()
                 .uri(translatePath)
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + serviceToken)
+                .header(
+                        "Idempotency-Key",
+                        "translation-" + request.processId() + "-" + request.segmentId()
+                )
                 .body(request)
                 .retrieve()
-                .body(TranslateTextResponse.class);
+                .body(TranslationDispatchAcceptedResponse.class);
         if (response == null) {
             throw new IllegalStateException("Translation service returned no response");
+        }
+        if (!response.accepted()
+                || !request.requestId().equals(response.requestId())
+                || !request.processId().equals(response.processId())
+                || !request.segmentId().equals(response.segmentId())) {
+            throw new IllegalStateException("Translation service returned invalid acceptance");
         }
         return response;
     }

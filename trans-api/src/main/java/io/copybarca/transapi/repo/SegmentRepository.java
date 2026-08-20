@@ -57,6 +57,7 @@ public interface SegmentRepository extends JpaRepository<Segment, Long> {
     @Query(
             value = """
                     SELECT segment.stable_key AS "stableKey",
+                           segment.id AS "segmentId",
                            text.text_hash AS "sourceHash",
                            text.text AS "sourceText",
                            book.original_language AS "sourceLanguage"

@@ -66,4 +66,15 @@ public class PdfBuildProcess {
         status = ProcessStatus.COMPLETED;
         completedAt = Instant.now();
     }
+
+    public void fail() {
+        status = ProcessStatus.FAILED;
+        completedAt = Instant.now();
+    }
+
+    public void restart() {
+        status = ProcessStatus.IN_PROGRESS;
+        startedAt = Instant.now();
+        completedAt = null;
+    }
 }

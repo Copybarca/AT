@@ -89,7 +89,7 @@ class PipelineSchemaIntegrationTest {
     }
 
     @Test
-    void processStatusChecksAllowOnlyInProgressAndCompleted() {
+    void processStatusChecksAllowInProgressCompletedAndFailed() {
         List<String> definitions = jdbc.queryForList(
                 """
                 SELECT pg_get_constraintdef(c.oid)
@@ -105,6 +105,7 @@ class PipelineSchemaIntegrationTest {
         assertTrue(definitions.stream().allMatch(definition ->
                 definition.contains("IN_PROGRESS")
                         && definition.contains("COMPLETED")
+                        && definition.contains("FAILED")
         ));
     }
 }

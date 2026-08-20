@@ -10,7 +10,9 @@ readme = "README.md"
 requires-python = ">=3.12,<3.14"
 dependencies = [
     "accelerate",
+    "fastapi",
     "huggingface-hub",
+    "httpx",
     "langchain",
     "langchain-community",
     "langchain-ollama",
@@ -24,6 +26,7 @@ dependencies = [
     "sentencepiece",
     "torch",
     "transformers",
+    "uvicorn[standard]",
 ]
 
 [project.optional-dependencies]

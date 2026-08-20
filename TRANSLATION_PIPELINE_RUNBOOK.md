@@ -82,6 +82,11 @@ sequentialNumbersAreContinuous == true
 - inference latency;
 - transport failures отдельно от validation failures.
 
+`trans-api` держит не более одной ожидаемой agent-команды на процесс. Один шаг
+выбирает следующий отсутствующий перевод из SQL, отправляет его в `trans-flow`
+и завершается. Только callback успешно сохранённого фрагмента запускает
+следующий шаг.
+
 Прогресс пересчитывается из фактических данных:
 
 ```text
@@ -90,6 +95,10 @@ acceptedPositions / totalTranslatablePositions
 
 Если accepted count не меняется дольше двух максимальных inference timeout,
 перейти к разделу диагностики.
+
+Невосстановимая ошибка dispatch, agent inference или валидации переводит
+translation process в `FAILED`. Повтор внешней команды переводит его обратно в
+`IN_PROGRESS` и продолжает с первого фактически отсутствующего перевода.
 
 ### 3.5. Build
 

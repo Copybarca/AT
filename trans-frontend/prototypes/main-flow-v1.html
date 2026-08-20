@@ -1,0 +1,1154 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AT — прототип основного потока v0.1</title>
+  <style>
+    :root {
+      --ink: #312a22;
+      --muted: #75695c;
+      --line: #ded2c2;
+      --line-strong: #ad9b85;
+      --surface: #fffdf8;
+      --surface-soft: #f3ede3;
+      --surface-blue: #eee3d4;
+      --nav: #322c25;
+      --nav-soft: #4a4035;
+      --primary: #76543a;
+      --primary-hover: #5c3f2b;
+      --success: #3f6a52;
+      --warning: #91651f;
+      --danger: #9f4035;
+      --info: #6c5b49;
+      --focus-ring: rgba(118, 84, 58, .22);
+      --button-radius: 4px;
+      --shadow: none;
+    }
+
+    * { box-sizing: border-box; }
+    html { color-scheme: light; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      color: var(--ink);
+      background: var(--surface-soft);
+      font: 14px/1.45 Inter, "Segoe UI", Arial, sans-serif;
+    }
+    button, input, select, textarea { font: inherit; }
+    button { border-radius: var(--button-radius); }
+    input, select, textarea, table, .panel, .card, .tag, .dropzone,
+    .callout, .metric, .step, .timeline-item, .question, .toast {
+      border-radius: 0;
+    }
+
+    .prototype-banner {
+      min-height: 34px;
+      padding: 7px 18px;
+      color: #5a4d40;
+      background: #eadfce;
+      border-bottom: 1px solid #d3c3ad;
+      text-align: center;
+      font-size: 12px;
+      letter-spacing: .02em;
+    }
+    .app { min-height: calc(100vh - 34px); display: grid; grid-template-columns: 210px 1fr; }
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: calc(100vh - 34px);
+      display: flex;
+      flex-direction: column;
+      color: #f4eadc;
+      background: var(--nav);
+      border-right: 1px solid #4a4035;
+    }
+    .brand {
+      height: 64px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 20px;
+      border-bottom: 1px solid #4a4035;
+    }
+    .brand-mark {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background: #8a6648;
+      font-weight: 800;
+    }
+    .brand strong { display: block; font-size: 15px; }
+    .brand small { color: #c7b9a6; }
+    .nav { padding: 16px 12px; }
+    .nav-label { padding: 8px; color: #b7a790; font-size: 11px; text-transform: uppercase; }
+    .nav-button {
+      width: 100%;
+      min-height: 42px;
+      margin: 2px 0;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #eadfce;
+      background: transparent;
+      border: 0;
+      border-radius: 0;
+      cursor: pointer;
+      text-align: left;
+    }
+    .nav-button:hover, .nav-button.active { color: #fff; background: var(--nav-soft); }
+    .nav-button.active { box-shadow: inset 3px 0 0 #c79a69; }
+    .sidebar-note {
+      margin: auto 12px 14px;
+      padding: 12px;
+      color: #b8c3d6;
+      border: 1px solid #34425d;
+      font-size: 12px;
+    }
+
+    .workspace { min-width: 0; }
+    .topbar {
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+    }
+    .crumbs { color: var(--muted); font-size: 13px; }
+    .connection { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+    .connection-dot { width: 8px; height: 8px; background: var(--success); }
+
+    main { max-width: 1280px; margin: 0 auto; padding: 24px; }
+    .screen { display: none; animation: enter .18s ease-out; }
+    .screen.active { display: block; }
+    @keyframes enter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { .screen { animation: none; } }
+
+    .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin-bottom: 6px; font-size: 26px; line-height: 1.2; }
+    h2 { margin-bottom: 16px; font-size: 18px; }
+    h3 { margin-bottom: 10px; font-size: 15px; }
+    .subtitle { margin: 0; color: var(--muted); }
+    .header-actions, .button-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+
+    .btn {
+      min-height: 40px;
+      padding: 0 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      font-weight: 650;
+    }
+    .btn-primary { color: #fff; background: var(--primary); border-color: var(--primary); }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-secondary { color: var(--ink); background: var(--surface); border-color: var(--line-strong); }
+    .btn-danger { color: #fff; background: var(--danger); border-color: var(--danger); }
+    .btn-link { min-height: 32px; padding: 0 8px; color: var(--primary); background: transparent; border: 0; }
+    .btn:disabled { color: #948777; background: #e9e0d4; border-color: #d6c9b8; cursor: not-allowed; }
+
+    .status-line { margin-bottom: 16px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .metric-filter { min-height: 64px; padding: 10px 14px; color: var(--muted); background: var(--surface); border: 1px solid var(--line); cursor: pointer; text-align: left; }
+    .metric-filter strong { margin-right: 5px; color: var(--ink); font-size: 20px; font-variant-numeric: tabular-nums; }
+    .metric-filter:hover { border-color: var(--line-strong); background: #faf4ea; }
+    .metric-filter.active { color: var(--primary); background: var(--surface-blue); border-color: var(--primary); box-shadow: inset 0 -3px 0 var(--primary); }
+    .metric-filter.active strong { color: var(--primary); }
+
+    .panel { background: var(--surface); border: 1px solid var(--line); box-shadow: none; }
+    .panel-header { min-height: 58px; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); }
+    .toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .search { width: min(320px, 100%); }
+    .control { height: 40px; padding: 0 12px; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); outline: none; }
+    .control:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--focus-ring); }
+    textarea.control { height: auto; min-height: 86px; padding-top: 10px; resize: vertical; }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; background: var(--surface); }
+    th { padding: 11px 14px; color: #584b3e; background: #f5efe6; border-bottom: 1px solid var(--line); text-align: left; font-size: 12px; font-weight: 700; white-space: nowrap; }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+    tbody tr { cursor: pointer; }
+    tbody tr:hover { background: #faf4ea; }
+    .file-cell { min-width: 250px; }
+    .file-name { display: block; font-weight: 700; }
+    .file-meta { margin-top: 3px; color: var(--muted); font-size: 12px; }
+    .tag { display: inline-flex; align-items: center; min-height: 24px; padding: 2px 8px; border: 1px solid currentColor; font-size: 11px; font-weight: 750; white-space: nowrap; }
+    .tag-ready { color: #344054; background: #f2f4f7; }
+    .tag-progress { color: var(--info); background: #eef4f0; }
+    .tag-success { color: var(--success); background: #ecfdf3; }
+    .tag-danger { color: var(--danger); background: #fff1f0; }
+    .tag-required { color: #8a2c0d; background: #fff4ed; }
+    .tag-optional { color: #475467; background: #f2f4f7; }
+    .tag-decision { color: #7a5a00; background: #fffaeb; }
+    .mini-progress { width: 150px; height: 7px; margin-top: 6px; background: #e7eaf0; overflow: hidden; }
+    .mini-progress span { display: block; height: 100%; background: var(--primary); }
+    .row-actions { display: flex; gap: 4px; justify-content: flex-end; }
+
+    .steps { display: flex; gap: 22px; margin: 0 0 16px; padding: 0 0 12px; border: 0; border-bottom: 1px solid var(--line); }
+    .step { min-height: 36px; padding: 0; display: flex; align-items: center; gap: 8px; background: transparent; border: 0; }
+    .step.active { background: transparent; box-shadow: none; }
+    .step-number { width: 28px; height: 28px; display: grid; place-items: center; color: #fff; background: #697386; font-weight: 750; }
+    .step.active .step-number { background: var(--primary); }
+    .step small { display: block; color: var(--muted); }
+
+    .upload-layout { display: block; }
+    .card { padding: 16px; background: var(--surface); border: 1px solid var(--line); }
+    .dropzone { min-height: 170px; padding: 24px; display: grid; place-items: center; text-align: center; background: #faf6ef; border: 2px dashed var(--line-strong); cursor: pointer; }
+    .dropzone:hover { border-color: var(--primary); background: #f3e9dc; }
+    .dropzone strong { display: block; margin-bottom: 4px; font-size: 16px; }
+    .dropzone input { display: none; }
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .field { min-width: 0; }
+    .field.full { grid-column: 1 / -1; }
+    .field label { margin-bottom: 7px; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; font-weight: 700; }
+    .field .control { width: 100%; }
+    .help { margin-top: 5px; color: var(--muted); font-size: 11px; }
+    .callout { padding: 10px 0 10px 12px; background: transparent; border: 0; border-left: 3px solid #b69743; }
+    .callout.info { background: transparent; border-color: var(--primary); }
+    .callout.danger { background: transparent; border-color: var(--danger); }
+    .question-list { display: grid; gap: 0; border-top: 1px solid var(--line); }
+    .question { padding: 10px 0; background: transparent; border: 0; border-bottom: 1px solid var(--line); }
+    .question strong { display: block; margin-bottom: 3px; }
+    .question span { color: var(--muted); font-size: 12px; }
+
+    .detail-layout { display: block; }
+    .detail-stack { display: grid; gap: 12px; }
+    .meta-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+    .meta-item { padding: 14px; background: var(--surface); }
+    .meta-label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+    .meta-value { margin-top: 5px; font-weight: 700; }
+    .pipeline { border: 1px solid var(--line); }
+    .pipeline-stage { display: grid; grid-template-columns: 42px 1fr auto; gap: 10px; align-items: start; padding: 12px; border-bottom: 1px solid var(--line); }
+    .pipeline-stage:last-child { border-bottom: 0; }
+    .stage-icon { width: 34px; height: 34px; display: grid; place-items: center; color: #fff; background: #697386; font-weight: 800; }
+    .stage-icon.done { background: var(--success); }
+    .stage-icon.work { background: var(--primary); }
+    .stage-icon.fail { background: var(--danger); }
+    .stage-description { color: var(--muted); font-size: 12px; }
+    .progress-large { height: 10px; margin-top: 10px; background: #e5e9ef; overflow: hidden; }
+    .progress-large span { display: block; height: 100%; background: var(--primary); transition: width .25s ease; }
+    .event-feed { max-height: 300px; overflow: auto; }
+    .timeline-item { padding: 11px 0 11px 18px; position: relative; border-bottom: 1px solid #e7eaf0; }
+    .timeline-item::before { content: ""; width: 7px; height: 7px; position: absolute; left: 2px; top: 17px; background: var(--primary); }
+    .timeline-time { color: var(--muted); font-size: 11px; }
+    .download-box { padding: 16px; background: #ecfdf3; border: 1px solid #7bc69c; }
+    .download-box.hidden { display: none; }
+    .footer-note { margin-top: 24px; padding-top: 14px; color: var(--muted); border-top: 1px solid var(--line); font-size: 12px; }
+    .event-details { padding: 12px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .event-details summary { cursor: pointer; font-weight: 700; }
+    .event-details .event-feed { margin-top: 8px; }
+    .fragments-toolbar { margin-bottom: 16px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; background: var(--surface); border: 1px solid var(--line); }
+    .fragment-book-picker { margin-bottom: 16px; padding: 16px; display: flex; align-items: end; gap: 12px; background: var(--surface); border: 1px solid var(--line); }
+    .fragment-book-picker .field { flex: 1; }
+    .segmented { display: inline-flex; padding: 3px; background: #e9dfd1; border: 1px solid #d4c4b0; }
+    .segment { min-height: 36px; padding: 0 14px; color: var(--muted); background: transparent; border: 0; cursor: pointer; font-weight: 700; }
+    .segment.active { color: #fff; background: var(--primary); }
+    .fragment-list { display: grid; gap: 14px; }
+    .fragment-card { padding: 0; overflow: hidden; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 8px 24px rgba(76, 57, 38, .06); }
+    .fragment-card__header { min-height: 48px; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #f5eee4; border-bottom: 1px solid var(--line); }
+    .fragment-sequence { font-weight: 800; font-variant-numeric: tabular-nums; }
+    .fragment-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .fragment-pane { min-width: 0; padding: 16px; }
+    .fragment-pane + .fragment-pane { border-left: 1px solid var(--line); }
+    .fragment-pane__label { margin-bottom: 8px; color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+    .fragment-translation { width: 100%; min-height: 132px; line-height: 1.55; }
+    .fragment-original { min-height: 132px; margin: 0; padding: 12px; white-space: pre-wrap; background: #faf5ed; border-left: 3px solid #c7a47c; line-height: 1.6; }
+    .fragment-actions { padding: 0 16px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .fragment-save-state { color: var(--muted); font-size: 12px; }
+    .load-sentinel { min-height: 72px; display: grid; place-items: center; color: var(--muted); }
+    .fragments-empty { padding: 40px 20px; text-align: center; background: var(--surface); border: 1px dashed var(--line-strong); }
+    .build-picker { margin-bottom: 16px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: end; }
+    .build-picker .field { min-width: 0; }
+    .build-summary { display: grid; gap: 14px; }
+    .build-readiness { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+    .build-readiness__item { padding: 14px; background: var(--surface); }
+    .build-readiness__label { color: var(--muted); font-size: 11px; font-weight: 750; letter-spacing: .04em; text-transform: uppercase; }
+    .build-readiness__value { margin-top: 5px; font-weight: 750; }
+    .build-progress { padding: 16px; background: var(--surface); border: 1px solid var(--line); }
+    .dialog-backdrop { position: fixed; z-index: 40; inset: 0; padding: 20px; display: grid; place-items: center; background: rgba(49, 42, 34, .54); }
+    .dialog { width: min(520px, 100%); padding: 22px; background: var(--surface); border: 1px solid var(--line-strong); box-shadow: 0 24px 70px rgba(49, 42, 34, .25); }
+    .dialog h2 { margin-bottom: 8px; }
+    .dialog .button-row { margin-top: 20px; justify-content: flex-end; }
+    .decision-list { border-top: 1px solid var(--line); }
+    .decision-row { display: grid; grid-template-columns: 220px 1fr auto; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+    .decision-row p { margin: 0; color: var(--muted); }
+
+    .toast { position: fixed; z-index: 20; right: 24px; bottom: 24px; width: min(360px, calc(100vw - 32px)); padding: 14px 16px; color: #fff; background: var(--nav); border-left: 4px solid #729b88; box-shadow: var(--shadow); transform: translateY(130%); transition: transform .2s ease; }
+    .toast.show { transform: none; }
+    .hidden { display: none !important; }
+
+    @media (max-width: 1050px) {
+      .app { grid-template-columns: 82px 1fr; }
+      .brand { padding: 0; justify-content: center; }
+      .brand-text, .nav-button span:last-child, .nav-label, .sidebar-note { display: none; }
+      .nav-button { justify-content: center; padding: 0; }
+      .upload-layout, .detail-layout { grid-template-columns: 1fr; }
+      .meta-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 720px) {
+      .prototype-banner { text-align: left; }
+      .app { display: block; }
+      .sidebar { position: static; width: 100%; height: auto; display: block; }
+      .brand { height: 52px; justify-content: flex-start; padding: 0 14px; }
+      .brand-text { display: block; }
+      .nav { padding: 6px; display: flex; overflow-x: auto; }
+      .nav-button { width: auto; min-width: 110px; padding: 0 12px; }
+      .nav-button span:last-child { display: inline; }
+      .topbar { height: 52px; padding: 0 12px; }
+      main { padding: 16px 12px; }
+      .page-header { display: block; }
+      .header-actions { margin-top: 14px; }
+      .steps { display: block; }
+      .step { margin-bottom: 8px; }
+      .form-grid, .meta-grid { grid-template-columns: 1fr; }
+      .status-line { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .field.full { grid-column: auto; }
+      .pipeline-stage { grid-template-columns: 34px 1fr; }
+      .pipeline-stage > .tag { grid-column: 2; justify-self: start; }
+      .fragments-toolbar { align-items: stretch; flex-direction: column; }
+      .fragment-book-picker { align-items: stretch; flex-direction: column; }
+      .segmented { width: 100%; }
+      .segment { flex: 1; }
+      .fragment-columns { grid-template-columns: 1fr; }
+      .fragment-pane + .fragment-pane { border-top: 1px solid var(--line); border-left: 0; }
+      .fragment-actions { align-items: stretch; flex-direction: column; }
+      .build-picker { grid-template-columns: 1fr; }
+      .build-readiness { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .decision-row { grid-template-columns: 1fr; gap: 4px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="prototype-banner">
+    ПРОТОТИП v0.1 · Дизайн и обязательность полей не утверждены · Все данные демонстрационные
+  </div>
+
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">AT</div>
+        <div class="brand-text"><strong>Перевод документов</strong><small>Рабочее пространство</small></div>
+      </div>
+      <nav class="nav" aria-label="Основная навигация">
+        <div class="nav-label">Работа</div>
+        <button class="nav-button active" data-screen="registry"><span>▤</span><span>Список документов</span></button>
+        <button class="nav-button" data-screen="upload"><span>＋</span><span>Загрузить</span></button>
+        <button class="nav-button" data-screen="fragments"><span>≡</span><span>Фрагменты</span></button>
+        <button class="nav-button" data-screen="build"><span>▣</span><span>Сборка</span></button>
+        <button class="nav-button" data-screen="questions"><span>?</span><span>Решения</span></button>
+      </nav>
+    </aside>
+
+    <section class="workspace">
+      <header class="topbar">
+        <div class="crumbs" id="crumbs">Документы</div>
+        <div class="connection" id="connection-status" data-connected="true"><span class="connection-dot"></span><span>Мониторинг подключён</span></div>
+      </header>
+
+      <main>
+        <section class="screen active" id="screen-registry">
+          <div class="page-header">
+            <div><h1>Документы</h1><p class="subtitle">Загрузка, перевод и выгрузка PDF.</p></div>
+            <div class="header-actions"><button class="btn btn-primary" data-screen="upload">＋ Загрузить файлы</button></div>
+          </div>
+
+          <div class="status-line">
+            <button class="metric-filter active" type="button" data-document-status-filter="all" aria-pressed="true"><strong id="metric-total">24</strong> документа</button>
+            <button class="metric-filter" type="button" data-document-status-filter="progress" aria-pressed="false"><strong>3</strong> переводятся</button>
+            <button class="metric-filter" type="button" data-document-status-filter="done" aria-pressed="false"><strong>15</strong> готовы</button>
+            <button class="metric-filter" type="button" data-document-status-filter="failed" aria-pressed="false"><strong style="color:var(--danger)">1</strong> с ошибкой</button>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <div class="toolbar">
+                <input class="control search" id="document-search" aria-label="Поиск документов по названию" placeholder="Поиск по названию">
+              </div>
+              <button class="btn btn-secondary">↻ Обновить</button>
+            </div>
+            <div class="table-wrap">
+              <table aria-label="Список документов">
+                <thead><tr><th>Документ</th><th>Языки</th><th>Состояние</th><th>Прогресс</th><th></th></tr></thead>
+                <tbody>
+                  <tr data-book-id="42" data-open-detail="ready" data-document-status="ready">
+                    <td class="file-cell"><span class="file-name">Designing Data-Intensive Applications</span><span class="file-meta">Книга #42</span></td>
+                    <td>EN → RU</td><td><span class="tag tag-ready">ЗАГРУЖЕН</span></td><td>Не запущен</td>
+                    <td><div class="row-actions"><button class="btn btn-primary">Перевести</button><button class="btn btn-secondary">Открыть</button></div></td>
+                  </tr>
+                  <tr data-book-id="39" data-open-detail="progress" data-document-status="progress">
+                    <td class="file-cell"><span class="file-name">OAuth 2 in Action</span><span class="file-meta">Книга #39</span></td>
+                    <td>EN → RU</td><td><span class="tag tag-progress">ПЕРЕВОДИТСЯ</span></td><td>68% · 923 / 1 358<div class="mini-progress"><span style="width:68%"></span></div></td>
+                    <td><div class="row-actions"><button class="btn btn-secondary">Открыть</button></div></td>
+                  </tr>
+                  <tr data-book-id="35" data-open-detail="done" data-document-status="done">
+                    <td class="file-cell"><span class="file-name">PostgreSQL Internals</span><span class="file-meta">Книга #35</span></td>
+                    <td>EN → RU</td><td><span class="tag tag-success">ГОТОВ</span></td><td>100%</td>
+                    <td><div class="row-actions"><button class="btn btn-primary" data-download>↓ Выгрузить</button><button class="btn btn-secondary">Открыть</button></div></td>
+                  </tr>
+                  <tr data-book-id="31" data-open-detail="failed" data-document-status="failed">
+                    <td class="file-cell"><span class="file-name">Distributed Systems</span><span class="file-meta">Книга #31</span></td>
+                    <td>EN → RU</td><td><span class="tag tag-danger">FAILED</span></td><td>41% · 557 / 1 358</td>
+                    <td><div class="row-actions"><button class="btn btn-danger">Повторить</button><button class="btn btn-secondary">Открыть</button></div></td>
+                  </tr>
+                  <tr data-book-id="44" data-open-detail="uploading" data-document-status="uploading">
+                    <td class="file-cell"><span class="file-name">Новый документ</span><span class="file-meta">Создание книги…</span></td>
+                    <td>EN</td><td><span class="tag tag-progress">ЗАГРУЗКА</span></td><td>36%<div class="mini-progress"><span style="width:36%"></span></div></td>
+                    <td><div class="row-actions"><button class="btn btn-secondary">Отменить</button></div></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="footer-note">Переход: строка или «Открыть» → карточка документа. «Перевести» открывает ту же карточку и требует явного подтверждения запуска.</div>
+        </section>
+
+        <section class="screen" id="screen-upload">
+          <div class="page-header">
+            <div><h1>Загрузка документов</h1><p class="subtitle">Выберите один или несколько PDF.</p></div>
+            <button class="btn btn-secondary" data-screen="registry">Отмена</button>
+          </div>
+          <div class="steps">
+            <div class="step active"><div class="step-number">1</div><div><strong>Выбрать PDF</strong></div></div>
+            <div class="step"><div class="step-number">2</div><div><strong>Проверить поля</strong></div></div>
+            <div class="step"><div class="step-number">3</div><div><strong>Загрузить</strong></div></div>
+          </div>
+
+          <div class="upload-layout">
+            <div class="detail-stack">
+              <label class="dropzone" id="dropzone">
+                <input id="file-input" type="file" accept="application/pdf" multiple>
+                <span><strong>Перетащите PDF сюда или выберите файлы</strong>Можно выбрать несколько файлов · предполагаемый лимит нужно согласовать</span>
+              </label>
+
+              <div class="card">
+                <h2>Метаданные</h2>
+                <div class="form-grid">
+                  <div class="field">
+                    <label>Язык книги <span class="tag tag-required">ОБЯЗАТЕЛЬНО</span></label>
+                    <select class="control"><option>Английский (EN)</option><option>Немецкий (DE)</option><option>Русский (RU)</option></select>
+                  </div>
+                  <div class="field">
+                    <label>Переводить на <span class="tag tag-required">ОБЯЗАТЕЛЬНО</span></label>
+                    <select class="control"><option>Русский (RU)</option><option>Английский (EN)</option><option>Немецкий (DE)</option></select>
+                  </div>
+                  <div class="field">
+                    <label>Название <span class="tag tag-optional">НЕОБЯЗАТЕЛЬНО</span></label>
+                    <input class="control" placeholder="По умолчанию — имя файла без .pdf">
+                  </div>
+                </div>
+                <div class="help" style="margin-top:12px">Язык книги используется при загрузке. Выбранный язык перевода передаётся backend при нажатии «Перевести».</div>
+              </div>
+
+              <div class="card">
+                <div class="page-header" style="margin-bottom:12px"><div><h2 style="margin-bottom:3px">Файлы</h2><p class="subtitle">Название и язык можно уточнить для каждого PDF.</p></div><span class="tag tag-ready" id="file-count">3 ФАЙЛА</span></div>
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>Файл</th><th>Название</th><th>Язык книги</th><th>Переводить на</th><th>Проверка</th><th></th></tr></thead>
+                    <tbody id="upload-files">
+                      <tr><td class="file-cell"><span class="file-name">api-security.pdf</span><span class="file-meta">9,6 МБ</span></td><td><input class="control" value="API Security in Action"></td><td><select class="control"><option>EN</option><option>DE</option></select></td><td><select class="control"><option>RU</option><option>EN</option><option>DE</option></select></td><td><span class="tag tag-success">PDF · OK</span></td><td><button class="btn btn-link">Удалить</button></td></tr>
+                      <tr><td class="file-cell"><span class="file-name">kubernetes-patterns.pdf</span><span class="file-meta">14,2 МБ</span></td><td><input class="control" value="Kubernetes Patterns"></td><td><select class="control"><option>EN</option><option>DE</option></select></td><td><select class="control"><option>RU</option><option>EN</option><option>DE</option></select></td><td><span class="tag tag-success">PDF · OK</span></td><td><button class="btn btn-link">Удалить</button></td></tr>
+                      <tr><td class="file-cell"><span class="file-name">untitled-scan.pdf</span><span class="file-meta">52,8 МБ</span></td><td><input class="control" placeholder="Название из имени файла"></td><td><select class="control"><option>EN</option><option>DE</option></select></td><td><select class="control"><option>RU</option><option>EN</option><option>DE</option></select></td><td><span class="tag tag-decision">ВОЗМОЖНО OCR</span></td><td><button class="btn btn-link">Удалить</button></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="button-row" style="justify-content:flex-end">
+                <button class="btn btn-secondary" data-screen="registry">Отмена</button>
+                <button class="btn btn-primary" id="upload-button">Загрузить 3 файла</button>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <section class="screen" id="screen-detail">
+          <div class="page-header">
+            <div><button class="btn btn-link" data-screen="registry">← Все документы</button><h1 id="detail-title">Designing Data-Intensive Applications</h1><p class="subtitle" id="detail-subtitle">Книга #42</p></div>
+            <div class="header-actions"><button class="btn btn-secondary" data-screen="fragments">≡ Ручной перевод</button><select class="control" id="target-language" aria-label="Язык перевода"><option>Русский (RU)</option><option>Английский (EN)</option></select><button class="btn btn-primary" id="translate-button">Перевести</button><button class="btn btn-primary hidden" id="download-button">↓ Выгрузить PDF</button></div>
+          </div>
+
+          <div class="meta-grid">
+            <div class="meta-item"><div class="meta-label">Состояние</div><div class="meta-value" id="file-status"><span class="tag tag-success">ЗАГРУЖЕН</span></div></div>
+            <div class="meta-item"><div class="meta-label">Язык оригинала</div><div class="meta-value">Английский (EN)</div></div>
+            <div class="meta-item"><div class="meta-label">Язык перевода</div><div class="meta-value">Русский (RU)</div></div>
+          </div>
+
+          <div class="detail-layout" style="margin-top:18px">
+            <div class="detail-stack">
+              <div class="card">
+                <div class="page-header" style="margin-bottom:12px"><div><h2 style="margin-bottom:3px">Обработка</h2></div><span class="tag tag-ready" id="overall-status">ГОТОВ К ПЕРЕВОДУ</span></div>
+                <div class="pipeline">
+                  <div class="pipeline-stage"><div class="stage-icon done">✓</div><div><h3>1. Извлечение</h3><div class="stage-description" id="extract-description">Завершено · 1 358 фрагментов</div></div><span class="tag tag-success" id="extract-tag">COMPLETED</span></div>
+                  <div class="pipeline-stage"><div class="stage-icon" id="translation-icon">2</div><div><h3>2. Перевод фрагментов</h3><div class="stage-description" id="translation-description">Перевод ещё не запускался</div><div class="progress-large"><span id="translation-progress" style="width:0%"></span></div></div><span class="tag tag-ready" id="translation-tag">НЕ ЗАПУЩЕН</span></div>
+                  <div class="pipeline-stage"><div class="stage-icon" id="build-icon">3</div><div><h3>3. Сборка PDF</h3><div class="stage-description" id="build-description">Начнётся после перевода</div></div><span class="tag tag-ready" id="build-tag">ОЖИДАЕТ</span></div>
+                </div>
+              </div>
+
+              <div class="download-box hidden" id="download-box"><h3>Переведённый PDF готов</h3><p>Проверка завершена: 612 страниц, файл читается, контрольный текст найден.</p><button class="btn btn-primary" data-download>↓ Выгрузить перевод · 19,1 МБ</button></div>
+
+              <div class="callout danger hidden" id="failure-box"><strong>Перевод остановлен</strong><br><span id="failure-text">Агент перевода недоступен. Уже принятые фрагменты сохранены.</span><div class="button-row" style="margin-top:12px"><button class="btn btn-danger" id="retry-button">Повторить с отсутствующего фрагмента</button><button class="btn btn-secondary">Показать диагностику</button></div></div>
+
+              <details class="event-details"><summary>Журнал событий</summary><div class="event-feed" id="event-feed"><div class="timeline-item"><strong>Документ готов к переводу</strong><div class="timeline-time">11:43:08</div></div><div class="timeline-item"><strong>Извлечение завершено</strong><div class="timeline-time">1 358 фрагментов · 11:43:07</div></div><div class="timeline-item"><strong>PDF загружен</strong><div class="timeline-time">11:42:51</div></div></div></details>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="screen-fragments">
+          <div class="page-header">
+            <div><h1>Ручной перевод фрагментов</h1><p class="subtitle" id="fragment-page-subtitle">Сначала выберите книгу, фрагменты которой нужно открыть.</p></div>
+            <button class="btn btn-secondary hidden" id="back-to-fragment-book" data-screen="detail">← К документу</button>
+          </div>
+
+          <div class="fragment-book-picker">
+            <div class="field">
+              <label for="fragment-book-select">Книга</label>
+              <select class="control" id="fragment-book-select">
+                <option value="">Выберите книгу</option>
+                <option value="42">Designing Data-Intensive Applications · #42</option>
+                <option value="39">OAuth 2 in Action · #39</option>
+                <option value="35">PostgreSQL Internals · #35</option>
+                <option value="31">Distributed Systems · #31</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" type="button" id="open-book-fragments" disabled>Показать фрагменты</button>
+          </div>
+
+          <div class="hidden" id="fragment-workspace">
+            <div class="fragments-toolbar">
+              <div class="segmented" role="group" aria-label="Какие фрагменты отображать">
+                <button class="segment active" type="button" data-fragment-filter="all" aria-pressed="true">Все фрагменты</button>
+                <button class="segment" type="button" data-fragment-filter="untranslated" aria-pressed="false">Только непереведённые</button>
+              </div>
+              <div class="subtitle"><strong id="fragment-visible-count">0</strong> показано · следующие элементы подгружаются автоматически</div>
+            </div>
+
+            <div class="fragment-list" id="fragment-list" aria-live="polite"></div>
+            <div class="load-sentinel" id="fragment-sentinel">Прокрутите ниже, чтобы загрузить следующие фрагменты</div>
+          </div>
+        </section>
+
+        <section class="screen" id="screen-build">
+          <div class="page-header">
+            <div><h1>Сборка итогового документа</h1><p class="subtitle">Выберите книгу, у которой полностью загружены все изображения и текстовые фрагменты.</p></div>
+          </div>
+
+          <div class="card build-picker">
+            <div class="field">
+              <label for="build-book-select">Книга, готовая к сборке</label>
+              <select class="control" id="build-book-select">
+                <option value="">Выберите книгу</option>
+                <option value="42">Designing Data-Intensive Applications · #42 · перевод не запускался</option>
+                <option value="39">OAuth 2 in Action · #39 · переводится</option>
+                <option value="35">PostgreSQL Internals · #35 · перевод и PDF готовы</option>
+                <option value="31">Distributed Systems · #31 · перевод готов, PDF отсутствует</option>
+              </select>
+              <div class="help">Сервис возвращает только книги с полностью загруженными фотографиями и текстами.</div>
+            </div>
+            <button class="btn btn-primary" type="button" id="build-document-button" disabled>Собрать документ</button>
+          </div>
+
+          <div class="build-summary hidden" id="build-summary">
+            <div class="card"><h2 id="build-book-title">—</h2><p class="subtitle" id="build-book-id">—</p></div>
+            <div class="build-readiness">
+              <div class="build-readiness__item"><div class="build-readiness__label">Контент в базе</div><div class="build-readiness__value"><span class="tag tag-success" id="build-content-state">ЗАГРУЖЕН ПОЛНОСТЬЮ</span><div class="help" id="build-content-counts">—</div></div></div>
+              <div class="build-readiness__item"><div class="build-readiness__label">База переводов</div><div class="build-readiness__value"><span class="tag" id="build-translation-state">—</span><div class="help" id="build-translation-counts">—</div></div></div>
+              <div class="build-readiness__item"><div class="build-readiness__label">Итоговый PDF</div><div class="build-readiness__value"><span class="tag" id="build-pdf-state">—</span><div class="help" id="build-pdf-description">—</div></div></div>
+              <div class="build-readiness__item"><div class="build-readiness__label">Доступность действия</div><div class="build-readiness__value"><span class="tag" id="build-action-state">—</span><div class="help" id="build-action-description">—</div></div></div>
+            </div>
+            <div class="callout info" id="build-rule-message"></div>
+            <div class="build-progress hidden" id="standalone-build-progress">
+              <strong id="standalone-build-progress-title">Собираем документ…</strong>
+              <div class="progress-large"><span id="standalone-build-progress-bar" style="width:0%"></span></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="screen-questions">
+          <div class="page-header"><div><h1>Решения для согласования</h1><p class="subtitle">Эти вопросы нужно закрыть до реализации рабочего интерфейса.</p></div></div>
+          <div class="decision-list">
+            <div class="decision-row"><strong>PDF-файл</strong><p>Обязателен. Проверяется PDF-сигнатура.</p><span class="tag tag-required">ОБЯЗАТЕЛЬНО</span></div>
+            <div class="decision-row"><strong>Название</strong><p>Если пусто, backend получает имя файла без `.pdf`.</p><span class="tag tag-optional">НЕОБЯЗАТЕЛЬНО</span></div>
+            <div class="decision-row"><strong>Язык книги</strong><p>Выбирается при загрузке и передаётся при создании книги.</p><span class="tag tag-required">ОБЯЗАТЕЛЬНО</span></div>
+            <div class="decision-row"><strong>Переводить на</strong><p>Выбирается при загрузке и используется при последующем запуске перевода.</p><span class="tag tag-required">ОБЯЗАТЕЛЬНО</span></div>
+            <div class="decision-row"><strong>Запуск перевода</strong><p>Предложение: только вручную после успешной загрузки.</p><span class="tag tag-decision">УТВЕРДИТЬ</span></div>
+            <div class="decision-row"><strong>Несколько файлов</strong><p>Загружать пакетом, но переводить каждый документ отдельно.</p><span class="tag tag-decision">УТВЕРДИТЬ</span></div>
+            <div class="decision-row"><strong>Повтор после FAILED</strong><p>Продолжать с первого отсутствующего перевода.</p><span class="tag tag-ready">ПОДДЕРЖАНО BACKEND</span></div>
+            <div class="decision-row"><strong>Дубликаты</strong><p>Нужно определить поведение для одинакового PDF.</p><span class="tag tag-decision">УТВЕРДИТЬ</span></div>
+          </div>
+        </section>
+      </main>
+    </section>
+  </div>
+
+  <div class="toast" id="toast"><strong id="toast-title">Готово</strong><div id="toast-text">Действие выполнено.</div></div>
+
+  <div class="dialog-backdrop hidden" id="rebuild-dialog" role="dialog" aria-modal="true" aria-labelledby="rebuild-dialog-title">
+    <div class="dialog">
+      <h2 id="rebuild-dialog-title">Пересобрать готовый документ?</h2>
+      <p>У книги уже есть готовый перевод и итоговый документ. Новая сборка заменит сохранённый результат.</p>
+      <div class="button-row">
+        <button class="btn btn-secondary" type="button" id="cancel-rebuild">Нет, отменить</button>
+        <button class="btn btn-primary" type="button" id="confirm-rebuild">Да, пересобрать</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const screens = [...document.querySelectorAll('.screen')];
+    const navButtons = [...document.querySelectorAll('.nav-button[data-screen]')];
+    const crumbs = document.getElementById('crumbs');
+    const labels = { registry: 'Документы', upload: 'Документы / Загрузка', detail: 'Документы / Карточка', fragments: 'Документы / Фрагменты', build: 'Документы / Сборка итогового документа', questions: 'Решения для согласования' };
+    let translationTimer;
+    let currentMode = 'ready';
+    let currentBookId = null;
+    let currentBookTitle = '';
+    let renderedFragmentBookId = null;
+
+    function showScreen(name) {
+      screens.forEach(screen => screen.classList.toggle('active', screen.id === `screen-${name}`));
+      navButtons.forEach(button => button.classList.toggle(
+        'active',
+        button.dataset.screen === name || ((name === 'detail' || name === 'fragments') && button.dataset.screen === 'registry')
+      ));
+      crumbs.textContent = name === 'fragments'
+        ? (currentBookId ? `Документы / Книга #${currentBookId} / Фрагменты` : 'Документы / Выбор книги / Фрагменты')
+        : (labels[name] || name);
+      if (name === 'fragments') {
+        prepareFragmentScreen();
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    document.addEventListener('click', event => {
+      const fragmentSave = event.target.closest('[data-save-fragment]');
+      if (fragmentSave) { saveFragmentTranslation(fragmentSave); return; }
+      const screenControl = event.target.closest('[data-screen]');
+      if (screenControl) { showScreen(screenControl.dataset.screen); return; }
+      const row = event.target.closest('[data-open-detail]');
+      if (row) {
+        currentBookId = Number(row.dataset.bookId);
+        currentBookTitle = row.querySelector('.file-name').textContent;
+        document.getElementById('detail-title').textContent = currentBookTitle;
+        document.getElementById('detail-subtitle').textContent = row.querySelector('.file-meta').textContent;
+        setDetailMode(row.dataset.openDetail);
+        showScreen('detail');
+      }
+      if (event.target.closest('[data-download]')) showToast('Выгрузка началась', 'В реальной системе браузер получит защищённый PDF download URL.');
+    });
+
+    let activeDocumentStatusFilter = 'all';
+
+    function applyDocumentFilters() {
+      const query = document.getElementById('document-search').value.trim().toLocaleLowerCase('ru');
+      document.querySelectorAll('#screen-registry [data-document-status]').forEach(row => {
+        const title = row.querySelector('.file-name').textContent.toLocaleLowerCase('ru');
+        const matchesStatus = activeDocumentStatusFilter === 'all'
+          || row.dataset.documentStatus === activeDocumentStatusFilter;
+        row.hidden = !matchesStatus || !title.includes(query);
+      });
+    }
+
+    document.querySelectorAll('[data-document-status-filter]').forEach(button => {
+      button.addEventListener('click', () => {
+        activeDocumentStatusFilter = button.dataset.documentStatusFilter;
+        document.querySelectorAll('[data-document-status-filter]').forEach(item => {
+          const active = item === button;
+          item.classList.toggle('active', active);
+          item.setAttribute('aria-pressed', String(active));
+        });
+        applyDocumentFilters();
+      });
+    });
+
+    document.getElementById('document-search').addEventListener('input', applyDocumentFilters);
+
+    const buildBooks = new Map([
+      [42, { id: 42, title: 'Designing Data-Intensive Applications', fragments: 1358, images: 612, translatedFragments: 0, translationStatus: 'not_started', pdfStatus: 'missing' }],
+      [39, { id: 39, title: 'OAuth 2 in Action', fragments: 982, images: 284, translatedFragments: 668, translationStatus: 'in_progress', pdfStatus: 'missing' }],
+      [35, { id: 35, title: 'PostgreSQL Internals', fragments: 1146, images: 436, translatedFragments: 1146, translationStatus: 'completed', pdfStatus: 'ready' }],
+      [31, { id: 31, title: 'Distributed Systems', fragments: 876, images: 198, translatedFragments: 876, translationStatus: 'completed', pdfStatus: 'missing' }]
+    ]);
+    let selectedBuildBook = null;
+
+    document.getElementById('build-book-select').addEventListener('change', event => {
+      selectedBuildBook = buildBooks.get(Number(event.currentTarget.value)) || null;
+      renderBuildBook();
+    });
+
+    function renderBuildBook() {
+      const summary = document.getElementById('build-summary');
+      const button = document.getElementById('build-document-button');
+      const message = document.getElementById('build-rule-message');
+      document.getElementById('standalone-build-progress').classList.add('hidden');
+      document.getElementById('standalone-build-progress-bar').style.width = '0%';
+      if (!selectedBuildBook) {
+        summary.classList.add('hidden');
+        button.disabled = true;
+        button.textContent = 'Собрать документ';
+        return;
+      }
+
+      summary.classList.remove('hidden');
+      document.getElementById('build-book-title').textContent = selectedBuildBook.title;
+      document.getElementById('build-book-id').textContent = `Книга #${selectedBuildBook.id}`;
+      document.getElementById('build-content-counts').textContent = `${selectedBuildBook.fragments} текстовых фрагментов · ${selectedBuildBook.images} изображений`;
+      const translationState = document.getElementById('build-translation-state');
+      const translationCounts = document.getElementById('build-translation-counts');
+      const pdfState = document.getElementById('build-pdf-state');
+      const pdfDescription = document.getElementById('build-pdf-description');
+      const actionState = document.getElementById('build-action-state');
+      const actionDescription = document.getElementById('build-action-description');
+
+      if (selectedBuildBook.translationStatus === 'not_started') {
+        translationState.textContent = 'БАЗА ПЕРЕВОДОВ ПУСТА';
+        translationState.className = 'tag tag-ready';
+      } else if (selectedBuildBook.translationStatus === 'in_progress') {
+        translationState.textContent = 'БАЗА ЗАПОЛНЯЕТСЯ';
+        translationState.className = 'tag tag-progress';
+      } else {
+        translationState.textContent = 'БАЗА ПЕРЕВОДОВ ЗАПОЛНЕНА';
+        translationState.className = 'tag tag-success';
+      }
+      translationCounts.textContent = `${selectedBuildBook.translatedFragments} / ${selectedBuildBook.fragments} переводов сохранено`;
+
+      if (selectedBuildBook.pdfStatus === 'ready') {
+        pdfState.textContent = 'PDF ГОТОВ';
+        pdfState.className = 'tag tag-success';
+        pdfDescription.textContent = 'Итоговый файл уже сохранён';
+      } else {
+        pdfState.textContent = 'PDF НЕ СОБРАН';
+        pdfState.className = 'tag tag-ready';
+        pdfDescription.textContent = 'Итогового файла пока нет';
+      }
+
+      if (selectedBuildBook.translationStatus === 'in_progress') {
+        actionState.textContent = 'СБОРКА ЗАБЛОКИРОВАНА';
+        actionState.className = 'tag tag-danger';
+        actionDescription.textContent = 'Дождитесь заполнения базы переводов';
+        button.disabled = true;
+        button.textContent = 'Сборка недоступна';
+        message.className = 'callout danger';
+        message.textContent = 'База переводов ещё заполняется. Итоговый PDF пока отсутствует, а сборка недоступна до завершения процесса.';
+        return;
+      }
+
+      button.disabled = false;
+      message.className = 'callout info';
+      if (selectedBuildBook.pdfStatus === 'ready') {
+        actionState.textContent = 'ТРЕБУЕТСЯ ПОДТВЕРЖДЕНИЕ';
+        actionState.className = 'tag tag-decision';
+        actionDescription.textContent = 'Будет заменён готовый PDF';
+        button.textContent = 'Пересобрать документ';
+        message.textContent = 'База переводов заполнена, итоговый PDF уже готов. Пересборка заменит существующий файл и требует подтверждения.';
+      } else {
+        actionState.textContent = 'МОЖНО СОБИРАТЬ';
+        actionState.className = 'tag tag-success';
+        actionDescription.textContent = 'Итоговый PDF ещё не существует';
+        button.textContent = 'Собрать документ';
+        message.textContent = selectedBuildBook.translationStatus === 'completed'
+          ? 'База переводов заполнена полностью, но итоговый PDF ещё не собран. Сборка доступна без подтверждения замены.'
+          : 'База переводов пуста и итоговый PDF отсутствует. Первичную сборку можно запустить без подтверждения.';
+      }
+    }
+
+    document.getElementById('build-document-button').addEventListener('click', () => {
+      if (!selectedBuildBook || selectedBuildBook.translationStatus === 'in_progress') return;
+      if (selectedBuildBook.pdfStatus === 'ready') {
+        document.getElementById('rebuild-dialog').classList.remove('hidden');
+        document.getElementById('cancel-rebuild').focus();
+        return;
+      }
+      runStandaloneBuild(false);
+    });
+
+    function closeRebuildDialog() {
+      document.getElementById('rebuild-dialog').classList.add('hidden');
+    }
+
+    document.getElementById('cancel-rebuild').addEventListener('click', () => {
+      closeRebuildDialog();
+      showToast('Пересборка отменена', 'Пересборка была отменена по вашему выбору.');
+    });
+
+    document.getElementById('confirm-rebuild').addEventListener('click', () => {
+      closeRebuildDialog();
+      runStandaloneBuild(true);
+    });
+
+    function runStandaloneBuild(rebuild) {
+      const progress = document.getElementById('standalone-build-progress');
+      const progressBar = document.getElementById('standalone-build-progress-bar');
+      const progressTitle = document.getElementById('standalone-build-progress-title');
+      const button = document.getElementById('build-document-button');
+      const select = document.getElementById('build-book-select');
+      progress.classList.remove('hidden');
+      progressTitle.textContent = rebuild ? 'Пересобираем и заменяем итоговый документ…' : 'Собираем итоговый документ…';
+      progressBar.style.width = '0%';
+      const pdfState = document.getElementById('build-pdf-state');
+      const pdfDescription = document.getElementById('build-pdf-description');
+      const actionState = document.getElementById('build-action-state');
+      const actionDescription = document.getElementById('build-action-description');
+      pdfState.textContent = 'PDF СОБИРАЕТСЯ';
+      pdfState.className = 'tag tag-progress';
+      pdfDescription.textContent = rebuild ? 'Готовится замена существующего файла' : 'Создаётся первый итоговый файл';
+      actionState.textContent = 'СБОРКА ИДЁТ';
+      actionState.className = 'tag tag-progress';
+      actionDescription.textContent = 'Дождитесь завершения операции';
+      button.disabled = true;
+      select.disabled = true;
+      let percent = 0;
+      const timer = setInterval(() => {
+        percent = Math.min(100, percent + 20);
+        progressBar.style.width = `${percent}%`;
+        if (percent < 100) return;
+        clearInterval(timer);
+        button.disabled = false;
+        select.disabled = false;
+        selectedBuildBook.pdfStatus = 'ready';
+        pdfState.textContent = 'PDF ГОТОВ';
+        pdfState.className = 'tag tag-success';
+        pdfDescription.textContent = rebuild ? 'Новая версия заменила предыдущую' : 'Итоговый файл сохранён';
+        actionState.textContent = 'ДОКУМЕНТ ГОТОВ';
+        actionState.className = 'tag tag-success';
+        actionDescription.textContent = 'Повторная сборка потребует подтверждения';
+        button.textContent = 'Пересобрать документ';
+        progressTitle.textContent = rebuild ? 'Итоговый документ пересобран и заменён' : 'Итоговый документ собран';
+        showToast(
+          rebuild ? 'Пересборка завершена' : 'Сборка завершена',
+          rebuild ? 'Новый итоговый документ заменил предыдущий сохранённый результат.' : 'Итоговый документ сохранён.'
+        );
+      }, 180);
+    }
+
+    const fragmentBookSelect = document.getElementById('fragment-book-select');
+    const openBookFragmentsButton = document.getElementById('open-book-fragments');
+
+    fragmentBookSelect.addEventListener('change', () => {
+      openBookFragmentsButton.disabled = !fragmentBookSelect.value;
+      document.getElementById('fragment-workspace').classList.add('hidden');
+      document.getElementById('back-to-fragment-book').classList.add('hidden');
+      document.getElementById('fragment-page-subtitle').textContent = fragmentBookSelect.value
+        ? 'Нажмите «Показать фрагменты», чтобы загрузить выбранную книгу.'
+        : 'Сначала выберите книгу, фрагменты которой нужно открыть.';
+    });
+
+    openBookFragmentsButton.addEventListener('click', () => {
+      const option = fragmentBookSelect.selectedOptions[0];
+      currentBookId = Number(option.value);
+      currentBookTitle = option.textContent.replace(/\s*·\s*#\d+\s*$/, '');
+      document.getElementById('detail-title').textContent = currentBookTitle;
+      document.getElementById('detail-subtitle').textContent = `Книга #${currentBookId}`;
+      setDetailMode('ready');
+      openSelectedBookFragments();
+    });
+
+    function prepareFragmentScreen() {
+      if (!currentBookId) {
+        fragmentBookSelect.value = '';
+        openBookFragmentsButton.disabled = true;
+        document.getElementById('fragment-workspace').classList.add('hidden');
+        document.getElementById('back-to-fragment-book').classList.add('hidden');
+        document.getElementById('fragment-page-subtitle').textContent = 'Сначала выберите книгу, фрагменты которой нужно открыть.';
+        return;
+      }
+      fragmentBookSelect.value = String(currentBookId);
+      openBookFragmentsButton.disabled = false;
+      openSelectedBookFragments();
+    }
+
+    function openSelectedBookFragments() {
+      document.getElementById('fragment-page-subtitle').innerHTML = '';
+      const title = document.createElement('span');
+      title.textContent = `${currentBookTitle} · книга #${currentBookId} · порядок строго по полю `;
+      const sequence = document.createElement('code');
+      sequence.textContent = 'sequence';
+      document.getElementById('fragment-page-subtitle').append(title, sequence, '.');
+      document.getElementById('fragment-workspace').classList.remove('hidden');
+      document.getElementById('back-to-fragment-book').classList.remove('hidden');
+      crumbs.textContent = `Документы / Книга #${currentBookId} / Фрагменты`;
+      if (renderedFragmentBookId !== currentBookId) {
+        renderedFragmentBookId = currentBookId;
+        resetFragmentList();
+      }
+    }
+
+    const fileInput = document.getElementById('file-input');
+    fileInput.addEventListener('change', () => {
+      if (!fileInput.files.length) return;
+      const body = document.getElementById('upload-files');
+      body.innerHTML = '';
+      [...fileInput.files].forEach(file => {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td class="file-cell"><span class="file-name"></span><span class="file-meta"></span></td><td><input class="control"></td><td><select class="control"><option>EN</option><option>DE</option><option>RU</option></select></td><td><select class="control"><option>RU</option><option>EN</option><option>DE</option></select></td><td><span class="tag tag-success">PDF · OK</span></td><td><button class="btn btn-link">Удалить</button></td>`;
+        row.querySelector('.file-name').textContent = file.name;
+        row.querySelector('.file-meta').textContent = `${(file.size / 1024 / 1024).toFixed(1)} МБ`;
+        row.querySelector('input').value = file.name.replace(/\.pdf$/i, '');
+        body.appendChild(row);
+      });
+      document.getElementById('file-count').textContent = `${fileInput.files.length} ФАЙЛА`;
+      document.getElementById('upload-button').textContent = `Загрузить ${fileInput.files.length} файла`;
+    });
+
+    document.getElementById('upload-button').addEventListener('click', event => {
+      event.currentTarget.disabled = true;
+      event.currentTarget.textContent = 'Загрузка · 0%';
+      let progress = 0;
+      const timer = setInterval(() => {
+        progress += 20;
+        event.currentTarget.textContent = `Загрузка · ${progress}%`;
+        if (progress >= 100) {
+          clearInterval(timer);
+          document.getElementById('metric-total').textContent = '27';
+          showToast('3 документа загружены', 'Они доступны в реестре. Перевод запускается отдельно.');
+          event.currentTarget.disabled = false;
+          event.currentTarget.textContent = 'Загрузить 3 файла';
+          showScreen('registry');
+        }
+      }, 180);
+    });
+
+    const fragmentTemplate = [
+      { id: 9101, sequence: 101, original: 'A distributed system is one in which the failure of a computer you did not even know existed can render your own computer unusable.', translation: 'Распределённая система — это система, в которой отказ компьютера, о существовании которого вы даже не знали, может сделать ваш компьютер непригодным для работы.' },
+      { id: 9102, sequence: 102, original: 'Reliability means continuing to work correctly, even when things go wrong.', translation: '' },
+      { id: 9103, sequence: 103, original: 'The systems we build need to be reliable, scalable, and maintainable.', translation: 'Создаваемые нами системы должны быть надёжными, масштабируемыми и удобными в сопровождении.' },
+      { id: 9104, sequence: 104, original: 'A fault is usually defined as one component of the system deviating from its specification.', translation: '' },
+      { id: 9105, sequence: 105, original: 'It is impossible to reduce the probability of a fault to zero.', translation: '' },
+      { id: 9106, sequence: 106, original: 'Scalability is the term we use to describe a system’s ability to cope with increased load.', translation: 'Масштабируемость описывает способность системы справляться с возрастающей нагрузкой.' },
+      { id: 9107, sequence: 107, original: 'Load can be described with a few numbers which we call load parameters.', translation: '' },
+      { id: 9108, sequence: 108, original: 'Performance is often measured using response time and throughput.', translation: 'Производительность часто измеряется временем отклика и пропускной способностью.' },
+      { id: 9109, sequence: 109, original: 'Good abstractions can help reduce accidental complexity.', translation: '' },
+      { id: 9110, sequence: 110, original: 'Maintainability has many facets, but three design principles are operability, simplicity, and evolvability.', translation: '' },
+      { id: 9111, sequence: 111, original: 'The majority of the cost of software is not in its initial development, but in its ongoing maintenance.', translation: 'Основная стоимость программного обеспечения связана не с первоначальной разработкой, а с дальнейшим сопровождением.' },
+      { id: 9112, sequence: 112, original: 'We should design systems in such a way that they can adapt to changing requirements.', translation: '' }
+    ];
+    const fragmentDataByBookId = new Map();
+    const FRAGMENT_BATCH_SIZE = 3;
+    let fragmentFilter = 'all';
+    let fragmentOffset = 0;
+
+    function getCurrentBookFragments() {
+      if (!fragmentDataByBookId.has(currentBookId)) {
+        fragmentDataByBookId.set(currentBookId, fragmentTemplate.map((fragment, index) => ({
+          ...fragment,
+          id: currentBookId * 1000 + index + 1,
+          translation: currentBookId === 42 ? fragment.translation : ''
+        })));
+      }
+      return fragmentDataByBookId.get(currentBookId);
+    }
+
+    function getFilteredFragments() {
+      return getCurrentBookFragments()
+        .filter(fragment => fragmentFilter === 'all' || !fragment.translation)
+        .sort((left, right) => left.sequence - right.sequence);
+    }
+
+    function createFragmentCard(fragment) {
+      const card = document.createElement('article');
+      card.className = 'fragment-card';
+      card.dataset.fragmentId = String(fragment.id);
+      card.dataset.sequence = String(fragment.sequence);
+      card.innerHTML = `<div class="fragment-card__header"><span class="fragment-sequence"></span><span class="tag"></span></div><div class="fragment-columns"><div class="fragment-pane"><div class="fragment-pane__label">Перевод</div><textarea class="control fragment-translation" placeholder="Введите перевод"></textarea></div><div class="fragment-pane"><div class="fragment-pane__label">Оригинал</div><p class="fragment-original"></p></div></div><div class="fragment-actions"><span class="fragment-save-state">Сохраняется отдельно для этого фрагмента</span><button class="btn btn-primary" type="button" data-save-fragment>Сохранить перевод</button></div>`;
+      card.querySelector('.fragment-sequence').textContent = `sequence ${fragment.sequence}`;
+      const status = card.querySelector('.tag');
+      status.textContent = fragment.translation ? 'ПЕРЕВЕДЁН' : 'НЕ ПЕРЕВЕДЁН';
+      status.className = `tag ${fragment.translation ? 'tag-success' : 'tag-ready'}`;
+      card.querySelector('.fragment-translation').value = fragment.translation;
+      card.querySelector('.fragment-original').textContent = fragment.original;
+      return card;
+    }
+
+    function updateFragmentVisibleCount() {
+      document.getElementById('fragment-visible-count').textContent = String(
+        document.querySelectorAll('#fragment-list .fragment-card').length
+      );
+    }
+
+    function loadNextFragmentBatch() {
+      const fragments = getFilteredFragments();
+      const batch = fragments.slice(fragmentOffset, fragmentOffset + FRAGMENT_BATCH_SIZE);
+      batch.forEach(fragment => document.getElementById('fragment-list').appendChild(createFragmentCard(fragment)));
+      fragmentOffset += batch.length;
+      const sentinel = document.getElementById('fragment-sentinel');
+      sentinel.textContent = fragmentOffset < fragments.length
+        ? 'Прокрутите ниже, чтобы загрузить следующие фрагменты'
+        : 'Все подходящие фрагменты загружены';
+      if (!fragments.length) {
+        document.getElementById('fragment-list').innerHTML = '<div class="fragments-empty"><strong>Фрагментов для выбранного фильтра нет</strong><br><span class="subtitle">Измените режим отображения.</span></div>';
+      }
+      updateFragmentVisibleCount();
+    }
+
+    function resetFragmentList() {
+      fragmentOffset = 0;
+      document.getElementById('fragment-list').innerHTML = '';
+      document.getElementById('fragment-sentinel').textContent = 'Загружаем первую порцию фрагментов…';
+      loadNextFragmentBatch();
+    }
+
+    document.querySelectorAll('[data-fragment-filter]').forEach(button => {
+      button.addEventListener('click', () => {
+        fragmentFilter = button.dataset.fragmentFilter;
+        document.querySelectorAll('[data-fragment-filter]').forEach(item => {
+          const active = item === button;
+          item.classList.toggle('active', active);
+          item.setAttribute('aria-pressed', String(active));
+        });
+        resetFragmentList();
+      });
+    });
+
+    const fragmentObserver = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting) && document.getElementById('screen-fragments').classList.contains('active')) {
+        loadNextFragmentBatch();
+      }
+    }, { rootMargin: '160px 0px' });
+    fragmentObserver.observe(document.getElementById('fragment-sentinel'));
+
+    function saveFragmentTranslation(button) {
+      const card = button.closest('.fragment-card');
+      const fragment = getCurrentBookFragments().find(item => item.id === Number(card.dataset.fragmentId));
+      const translation = card.querySelector('.fragment-translation').value.trim();
+      if (!translation) {
+        showToast('Перевод не сохранён', 'Введите текст предлагаемого перевода.');
+        return;
+      }
+      button.disabled = true;
+      button.textContent = 'Сохраняем…';
+      card.querySelector('.fragment-save-state').textContent = 'Отправляем перевод одного фрагмента…';
+      setTimeout(() => {
+        fragment.translation = translation;
+        const status = card.querySelector('.tag');
+        status.textContent = 'ПЕРЕВЕДЁН';
+        status.className = 'tag tag-success';
+        card.querySelector('.fragment-save-state').textContent = `Сохранено для sequence ${fragment.sequence}`;
+        button.disabled = false;
+        button.textContent = 'Сохранить перевод';
+        showToast('Перевод сохранён', `Фрагмент sequence ${fragment.sequence} обновлён.`);
+        if (fragmentFilter === 'untranslated') {
+          card.remove();
+          fragmentOffset = document.querySelectorAll('#fragment-list .fragment-card').length;
+          updateFragmentVisibleCount();
+          loadNextFragmentBatch();
+        }
+      }, 450);
+    }
+
+    function setDetailMode(mode) {
+      clearInterval(translationTimer);
+      currentMode = mode;
+      const translate = document.getElementById('translate-button');
+      const targetLanguage = document.getElementById('target-language');
+      const download = document.getElementById('download-button');
+      const downloadBox = document.getElementById('download-box');
+      const failureBox = document.getElementById('failure-box');
+      translate.classList.remove('hidden'); translate.disabled = false; translate.textContent = 'Перевести';
+      targetLanguage.classList.remove('hidden');
+      download.classList.add('hidden'); downloadBox.classList.add('hidden'); failureBox.classList.add('hidden');
+      document.getElementById('translation-progress').style.width = '0%';
+      document.getElementById('translation-icon').className = 'stage-icon';
+      document.getElementById('translation-icon').textContent = '2';
+      document.getElementById('build-icon').className = 'stage-icon';
+      document.getElementById('build-icon').textContent = '3';
+      setTag('translation-tag', 'НЕ ЗАПУЩЕН', 'ready'); setTag('build-tag', 'ОЖИДАЕТ', 'ready');
+      document.getElementById('translation-description').textContent = 'Перевод ещё не запускался';
+      document.getElementById('build-description').textContent = 'Начнётся автоматически после перевода всех фрагментов';
+      setTag('overall-status', 'ГОТОВ К ПЕРЕВОДУ', 'ready');
+
+      if (mode === 'progress') {
+        applyProgress(68); translate.classList.add('hidden'); targetLanguage.classList.add('hidden');
+      } else if (mode === 'done') {
+        targetLanguage.classList.add('hidden'); applyDone();
+      } else if (mode === 'failed') {
+        applyProgress(41); translate.classList.add('hidden'); targetLanguage.classList.add('hidden'); failureBox.classList.remove('hidden');
+        document.getElementById('translation-icon').className = 'stage-icon fail'; document.getElementById('translation-icon').textContent = '!';
+        setTag('translation-tag', 'FAILED', 'danger'); setTag('overall-status', 'ТРЕБУЕТ ВНИМАНИЯ', 'danger');
+        document.getElementById('translation-description').textContent = '557 / 1 358 фрагментов · сохранённый прогресс 41%';
+      } else if (mode === 'uploading') {
+        translate.disabled = true; translate.textContent = 'Сначала дождитесь загрузки'; targetLanguage.classList.add('hidden');
+        setTag('overall-status', 'ФАЙЛ ЗАГРУЖАЕТСЯ', 'progress');
+      }
+    }
+
+    function setTag(id, text, kind) {
+      const element = document.getElementById(id);
+      element.textContent = text;
+      element.className = `tag tag-${kind}`;
+    }
+
+    function applyProgress(percent) {
+      document.getElementById('translation-progress').style.width = `${percent}%`;
+      document.getElementById('translation-icon').className = 'stage-icon work';
+      document.getElementById('translation-icon').textContent = '↻';
+      setTag('translation-tag', `IN_PROGRESS · ${percent}%`, 'progress');
+      setTag('overall-status', `ПЕРЕВОД · ${percent}%`, 'progress');
+      document.getElementById('translation-description').textContent = `${Math.round(1358 * percent / 100)} / 1 358 фрагментов · последний ответ несколько секунд назад`;
+    }
+
+    function applyDone() {
+      clearInterval(translationTimer);
+      document.getElementById('translation-progress').style.width = '100%';
+      document.getElementById('translation-icon').className = 'stage-icon done'; document.getElementById('translation-icon').textContent = '✓';
+      document.getElementById('build-icon').className = 'stage-icon done'; document.getElementById('build-icon').textContent = '✓';
+      setTag('translation-tag', 'COMPLETED · 100%', 'success'); setTag('build-tag', 'COMPLETED', 'success'); setTag('overall-status', 'PDF ГОТОВ', 'success');
+      document.getElementById('translation-description').textContent = '1 358 / 1 358 фрагментов переведены';
+      document.getElementById('build-description').textContent = 'PDF собран и прошёл независимую проверку';
+      document.getElementById('translate-button').classList.add('hidden');
+      document.getElementById('download-button').classList.remove('hidden');
+      document.getElementById('download-box').classList.remove('hidden');
+      addEvent('PDF готов к выгрузке', 'проверка пройдена · только что');
+      showToast('Перевод завершён', 'Итоговый PDF готов к выгрузке.');
+    }
+
+    function startTranslation() {
+      let progress = currentMode === 'failed' ? 41 : 0;
+      document.getElementById('failure-box').classList.add('hidden');
+      document.getElementById('translate-button').classList.add('hidden');
+      document.getElementById('target-language').classList.add('hidden');
+      addEvent('Перевод запущен', 'ожидаем первый фрагмент · только что');
+      applyProgress(progress);
+      translationTimer = setInterval(() => {
+        progress = Math.min(100, progress + Math.ceil(Math.random() * 8));
+        applyProgress(progress);
+        if (progress >= 100) {
+          clearInterval(translationTimer);
+          setTag('build-tag', 'IN_PROGRESS', 'progress');
+          document.getElementById('build-icon').className = 'stage-icon work'; document.getElementById('build-icon').textContent = '↻';
+          document.getElementById('build-description').textContent = 'Собираем и проверяем итоговый PDF…';
+          addEvent('Перевод фрагментов завершён', 'запущена сборка PDF · только что');
+          setTimeout(applyDone, 1300);
+        }
+      }, 280);
+    }
+
+    document.getElementById('translate-button').addEventListener('click', startTranslation);
+    document.getElementById('retry-button').addEventListener('click', startTranslation);
+    document.getElementById('download-button').addEventListener('click', () => showToast('Выгрузка началась', 'Файл будет сохранён средствами браузера.'));
+
+    function addEvent(title, time) {
+      const item = document.createElement('div');
+      item.className = 'timeline-item';
+      item.innerHTML = `<strong></strong><div class="timeline-time"></div>`;
+      item.querySelector('strong').textContent = title;
+      item.querySelector('.timeline-time').textContent = time;
+      document.getElementById('event-feed').prepend(item);
+    }
+
+    function showToast(title, text) {
+      document.getElementById('toast-title').textContent = title;
+      document.getElementById('toast-text').textContent = text;
+      const toast = document.getElementById('toast');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2800);
+    }
+  </script>
+</body>
+</html>

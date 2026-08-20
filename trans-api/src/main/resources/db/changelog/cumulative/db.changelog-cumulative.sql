@@ -171,3 +171,30 @@ CREATE INDEX IF NOT EXISTS idx_insertion_text_region_source_hash
 --rollback DROP TABLE IF EXISTS "scheduled-processes".translation_process;
 --rollback DROP TABLE IF EXISTS "scheduled-processes".pdf_extraction_process;
 --rollback DROP TABLE IF EXISTS trans.insertion_text_region;
+
+
+--changeset copybarca:003-pipeline-failed-status splitStatements:true endDelimiter:;
+ALTER TABLE "scheduled-processes".pdf_extraction_process
+    DROP CONSTRAINT chk_pdf_extraction_status;
+ALTER TABLE "scheduled-processes".pdf_extraction_process
+    ADD CONSTRAINT chk_pdf_extraction_status
+        CHECK (status IN ('IN_PROGRESS', 'COMPLETED', 'FAILED'));
+
+ALTER TABLE "scheduled-processes".translation_process
+    DROP CONSTRAINT chk_translation_process_status;
+ALTER TABLE "scheduled-processes".translation_process
+    ADD CONSTRAINT chk_translation_process_status
+        CHECK (status IN ('IN_PROGRESS', 'COMPLETED', 'FAILED'));
+
+ALTER TABLE "scheduled-processes".pdf_build_process
+    DROP CONSTRAINT chk_pdf_build_status;
+ALTER TABLE "scheduled-processes".pdf_build_process
+    ADD CONSTRAINT chk_pdf_build_status
+        CHECK (status IN ('IN_PROGRESS', 'COMPLETED', 'FAILED'));
+
+--rollback ALTER TABLE "scheduled-processes".pdf_build_process DROP CONSTRAINT chk_pdf_build_status;
+--rollback ALTER TABLE "scheduled-processes".pdf_build_process ADD CONSTRAINT chk_pdf_build_status CHECK (status IN ('IN_PROGRESS', 'COMPLETED'));
+--rollback ALTER TABLE "scheduled-processes".translation_process DROP CONSTRAINT chk_translation_process_status;
+--rollback ALTER TABLE "scheduled-processes".translation_process ADD CONSTRAINT chk_translation_process_status CHECK (status IN ('IN_PROGRESS', 'COMPLETED'));
+--rollback ALTER TABLE "scheduled-processes".pdf_extraction_process DROP CONSTRAINT chk_pdf_extraction_status;
+--rollback ALTER TABLE "scheduled-processes".pdf_extraction_process ADD CONSTRAINT chk_pdf_extraction_status CHECK (status IN ('IN_PROGRESS', 'COMPLETED'));
