@@ -47,6 +47,13 @@ export function BooksPage() {
     return () => window.clearTimeout(timer)
   }, [loadBooks, revision])
 
+  useEffect(() => {
+    const active = books.some((book) => book.contentStatus === 'uploading' || book.translationStatus === 'in_progress' || book.pdfStatus === 'building')
+    if (!active) return undefined
+    const timer = window.setInterval(() => void loadBooks(), 2500)
+    return () => window.clearInterval(timer)
+  }, [books, loadBooks])
+
   const titleBody = (book: Book) => (
     <div>
       <strong className="table-title">{book.title}</strong>
@@ -106,7 +113,7 @@ export function BooksPage() {
           tableStyle={{ minWidth: '840px' }}
         >
           <Column header="Документ" body={titleBody} />
-          <Column header="Языки" body={(book: Book) => `${book.sourceLanguage} → ${book.targetLanguage}`} />
+          <Column header="Языки" body={(book: Book) => `${book.sourceLanguage} → ${book.targetLanguage ?? '—'}`} />
           <Column header="Состояние" body={(book: Book) => <BookMainStatusTag book={book} />} />
           <Column header="Прогресс" body={progressBody} />
           <Column

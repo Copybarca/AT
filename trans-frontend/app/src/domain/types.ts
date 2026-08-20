@@ -9,7 +9,7 @@ export interface Book {
   title: string
   fileName: string
   sourceLanguage: string
-  targetLanguage: string
+  targetLanguage: string | null
   contentStatus: ContentStatus
   translationStatus: TranslationStatus
   pdfStatus: PdfStatus
@@ -54,6 +54,7 @@ export interface FragmentPage {
 
 export interface FragmentPageRequest {
   bookId: number
+  targetLanguage: string
   afterSequence: number | null
   limit: number
   filter: FragmentFilter
@@ -61,6 +62,7 @@ export interface FragmentPageRequest {
 
 export interface BuildRequest {
   bookId: number
+  targetLanguage: string
   replaceExisting: boolean
   onProgress?: (percent: number) => void
 }

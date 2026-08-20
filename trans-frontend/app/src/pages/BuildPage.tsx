@@ -33,13 +33,14 @@ export function BuildPage() {
   }
 
   const runBuild = async (replaceExisting: boolean) => {
-    if (!selected) return
+    if (!selected?.targetLanguage) return
     setConfirmVisible(false)
     setProgress(0)
     setError(null)
     try {
       const book = await bookService.buildDocument({
         bookId: selected.id,
+        targetLanguage: selected.targetLanguage,
         replaceExisting,
         onProgress: setProgress,
       })
@@ -69,7 +70,7 @@ export function BuildPage() {
       ? { label: 'БАЗА ЗАПОЛНЯЕТСЯ', severity: 'info' as const, detail: `${selected.translatedFragments} / ${selected.totalFragments} переводов сохранено` }
       : { label: 'БАЗА ПЕРЕВОДОВ ПУСТА', severity: 'secondary' as const, detail: `0 / ${selected?.totalFragments ?? 0} переводов сохранено` }
 
-  const blocked = selected?.translationStatus === 'in_progress'
+  const blocked = selected != null && selected.translationStatus !== 'completed'
   const rebuilding = selected?.pdfStatus === 'ready'
 
   return (

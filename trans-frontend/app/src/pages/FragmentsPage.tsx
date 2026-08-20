@@ -14,7 +14,7 @@ const filterOptions = [
   { label: 'Только непереведённые', value: 'untranslated' },
 ]
 
-function FragmentEditor({ fragment, onSaved }: { fragment: Fragment; onSaved: (fragment: Fragment) => void }) {
+function FragmentEditor({ fragment, targetLanguage, onSaved }: { fragment: Fragment; targetLanguage: string; onSaved: (fragment: Fragment) => void }) {
   const toast = useToastMessage()
   const [translation, setTranslation] = useState(fragment.translatedText ?? '')
   const [saving, setSaving] = useState(false)
@@ -26,7 +26,7 @@ function FragmentEditor({ fragment, onSaved }: { fragment: Fragment; onSaved: (f
     }
     setSaving(true)
     try {
-      const saved = await bookService.saveFragmentTranslation(fragment.bookId, fragment.id, translation)
+      const saved = await bookService.saveFragmentTranslation(fragment.bookId, fragment.id, targetLanguage, translation)
       onSaved(saved)
       toast.success('Перевод сохранён', `Фрагмент sequence ${fragment.sequence} обновлён.`)
     } catch (reason) {
@@ -74,11 +74,13 @@ export function FragmentsPage() {
 
   const loadMore = useCallback(async (reset = false) => {
     if (loadingRef.current || (!reset && !hasMoreRef.current)) return
+    if (!book?.targetLanguage) return
     loadingRef.current = true
     setLoading(true)
     const generation = generationRef.current
     try {
       const page = await bookService.getFragments({
+        targetLanguage: book.targetLanguage,
         bookId: numericBookId,
         afterSequence: reset ? null : cursorRef.current,
         limit: 6,
@@ -97,7 +99,7 @@ export function FragmentsPage() {
       loadingRef.current = false
       setLoading(false)
     }
-  }, [filter, numericBookId])
+  }, [book?.targetLanguage, filter, numericBookId])
 
   useEffect(() => {
     generationRef.current += 1
@@ -140,7 +142,7 @@ export function FragmentsPage() {
       </div>
       {error && <Message severity="error" text={error} className="wide-message" />}
       <div className="fragment-list">
-        {fragments.map((fragment) => <FragmentEditor key={fragment.id} fragment={fragment} onSaved={saved} />)}
+        {book?.targetLanguage && fragments.map((fragment) => <FragmentEditor key={fragment.id} fragment={fragment} targetLanguage={book.targetLanguage ?? ''} onSaved={saved} />)}
       </div>
       <div ref={sentinelRef} className="loading-sentinel">
         {loading ? <><i className="pi pi-spin pi-spinner" /> Загружаем следующие фрагменты…</> : hasMoreRef.current ? 'Прокрутите ниже для продолжения' : 'Все подходящие фрагменты загружены'}
