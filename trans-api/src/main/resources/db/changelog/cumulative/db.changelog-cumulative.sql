@@ -175,6 +175,16 @@ CREATE INDEX IF NOT EXISTS idx_insertion_text_region_source_hash
 
 --changeset copybarca:003-pipeline-failed-status splitStatements:true endDelimiter:;
 ALTER TABLE "scheduled-processes".pdf_extraction_process
+
+--changeset copybarca:004-book-frontend-metadata splitStatements:true endDelimiter:;
+ALTER TABLE trans.book
+    ADD COLUMN IF NOT EXISTS original_filename VARCHAR,
+    ADD COLUMN IF NOT EXISTS target_language VARCHAR(32),
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+
+--rollback ALTER TABLE trans.book DROP COLUMN IF EXISTS updated_at;
+--rollback ALTER TABLE trans.book DROP COLUMN IF EXISTS target_language;
+--rollback ALTER TABLE trans.book DROP COLUMN IF EXISTS original_filename;
     DROP CONSTRAINT chk_pdf_extraction_status;
 ALTER TABLE "scheduled-processes".pdf_extraction_process
     ADD CONSTRAINT chk_pdf_extraction_status

@@ -48,6 +48,7 @@ public class BookService {
         Book book = bookRepository.save(
                 new Book(resolvedTitle, originalLanguage.trim())
         );
+        book.setOriginalFilename(safeFilename(file.getOriginalFilename()));
         book.setPath(bookFileStorage.storeOriginal(book.getId(), file));
         return toResponse(book);
     }
@@ -150,6 +151,13 @@ public class BookService {
         return resolved;
     }
 
+    private static String safeFilename(String originalFilename) {
+        if (!StringUtils.hasText(originalFilename)) {
+            return "book.pdf";
+        }
+        String normalized = originalFilename.replace('\\', '/');
+        return normalized.substring(normalized.lastIndexOf('/') + 1);
+    }
 
     private static void requirePdf(MultipartFile file) {
         String filename = file.getOriginalFilename();

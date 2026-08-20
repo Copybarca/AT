@@ -75,6 +75,7 @@ public class PipelineProcessService {
             throw new IllegalArgumentException("Book original PDF is not stored");
         }
         String language = targetLanguage.trim();
+        book.selectTargetLanguage(language);
 
         PdfExtractionProcess extraction = extractions.findByBook_Id(bookId)
                 .orElseGet(() -> extractions.save(new PdfExtractionProcess(book)));
