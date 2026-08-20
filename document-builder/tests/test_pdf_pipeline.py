@@ -31,7 +31,7 @@ def test_weasyprint_output_passes_independent_pdf_validation(tmp_path: Path) -> 
     report = PdfValidator(settings).validate(
         output,
         PdfValidationExpectations(
-            first_control_text="Глава",
+            first_control_text="Глава\n",
             last_control_text="return 42",
             expected_images=1,
         ),

@@ -322,6 +322,7 @@ dependencies = [
     { name = "cairosvg" },
     { name = "fastapi" },
     { name = "fonttools" },
+    { name = "httpx" },
     { name = "jinja2" },
     { name = "markdown" },
     { name = "pillow" },
@@ -335,7 +336,6 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "httpx" },
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -348,6 +348,7 @@ requires-dist = [
     { name = "cairosvg" },
     { name = "fastapi" },
     { name = "fonttools" },
+    { name = "httpx" },
     { name = "jinja2" },
     { name = "markdown" },
     { name = "pillow" },
@@ -361,7 +362,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "httpx" },
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-asyncio" },

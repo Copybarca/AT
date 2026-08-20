@@ -84,10 +84,12 @@ class PdfValidator:
 
         if blank_pages:
             issues.append(f"PDF has {blank_pages} unexpected blank pages")
-        joined_text = "\n".join(extracted_pages)
-        if expected.first_control_text not in joined_text:
+        joined_text = _normalize_text("\n".join(extracted_pages))
+        first_control_text = _normalize_text(expected.first_control_text)
+        last_control_text = _normalize_text(expected.last_control_text)
+        if first_control_text not in joined_text:
             issues.append("First control text is missing")
-        if expected.last_control_text not in joined_text:
+        if last_control_text not in joined_text:
             issues.append("Last control text is missing")
         for marker in _UNFINISHED_MARKERS:
             if marker in joined_text:
@@ -106,3 +108,7 @@ class PdfValidator:
             image_instances=image_instances,
             issues=tuple(issues),
         )
+
+
+def _normalize_text(value: str) -> str:
+    return " ".join(value.split())

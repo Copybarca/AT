@@ -13,6 +13,7 @@ dependencies = [
     "ocrmypdf",
     "pdf2image",
     "pdfplumber",
+    "httpx",
     "pillow",
     "pydantic-settings",
     "pymupdf",
@@ -24,7 +25,6 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "httpx",
     "mypy",
     "pytest",
     "pytest-asyncio",

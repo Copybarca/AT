@@ -42,6 +42,7 @@ class OllamaTranslationAgent:
         )
         response: Any = await self._client.chat(
             model=self.model_name,
+            think=False,
             messages=[{"role": "user", "content": prompt}],
             options={"temperature": 0},
         )

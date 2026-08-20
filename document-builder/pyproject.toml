@@ -12,6 +12,7 @@ dependencies = [
     "babel",
     "cairosvg",
     "fastapi",
+    "httpx",
     "fonttools",
     "jinja2",
     "markdown",
@@ -26,7 +27,6 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "httpx",
     "mypy",
     "pytest",
     "pytest-asyncio",
