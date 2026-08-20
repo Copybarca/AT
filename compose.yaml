@@ -1,0 +1,191 @@
+name: at
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-data}
+      POSTGRES_USER: ${DB_USER:-data}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-data}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-data} -d ${DB_NAME:-data}"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin}
+    volumes:
+      - minio-data:/data
+    restart: unless-stopped
+
+  minio-init:
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
+    depends_on:
+      - minio
+    environment:
+      S3_BUCKET: ${S3_BUCKET:-trans-books}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-minioadmin}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        until mc alias set local http://minio:9000 "$$S3_ACCESS_KEY" "$$S3_SECRET_KEY"; do sleep 2; done;
+        mc mb --ignore-existing "local/$$S3_BUCKET"
+    restart: "no"
+
+  ollama:
+    image: ollama/ollama:0.11.4
+    volumes:
+      - ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+    restart: unless-stopped
+
+  ollama-init:
+    image: ollama/ollama:0.11.4
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:8b}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - ollama pull "$$OLLAMA_MODEL"
+    restart: "no"
+
+  trans-api:
+    build:
+      context: ./trans-api
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-data}
+      DB_USER: ${DB_USER:-data}
+      DB_PASSWORD: ${DB_PASSWORD:-data}
+      S3_BUCKET: ${S3_BUCKET:-trans-books}
+      S3_PREFIX: books
+      S3_REGION: us-east-1
+      S3_ENDPOINT: http://minio:9000
+      S3_PATH_STYLE_ACCESS: "true"
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-minioadmin}
+      PDF_EXTRACTOR_BASE_URL: http://pdf-extractor:8001
+      PDF_BUILDER_BASE_URL: http://document-builder:8002
+      AGENT_FLOW_BASE_URL: http://trans-flow:8003
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-local-service-token}
+      MAX_FILE_SIZE: ${MAX_FILE_SIZE:-100MB}
+      MAX_REQUEST_SIZE: ${MAX_REQUEST_SIZE:-100MB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+
+  pdf-extractor:
+    build:
+      context: ./PDF-extractor
+    environment:
+      TRANS_API_BASE_URL: http://trans-api:8080
+      SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-local-service-token}
+      EXTRACTION_TEMP_ROOT: /tmp/pdf-extractor
+      OCR_LANGUAGE: eng
+    depends_on:
+      trans-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health', timeout=2)"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+
+  trans-flow:
+    build:
+      context: ./trans-flow
+    environment:
+      TRANS_API_BASE_URL: http://trans-api:8080
+      SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-local-service-token}
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:8b}
+    depends_on:
+      trans-api:
+        condition: service_healthy
+      ollama-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8003/health', timeout=2)"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+
+  document-builder:
+    build:
+      context: ./document-builder
+    environment:
+      TRANS_API_BASE_URL: http://trans-api:8080
+      TRANS_API_TOKEN: ${INTERNAL_SERVICE_TOKEN:-local-service-token}
+      BUILD_TEMP_ROOT: /tmp/document-builder
+      BODY_FONT_FAMILY: Noto Serif
+      MONO_FONT_FAMILY: DejaVu Sans Mono
+    depends_on:
+      trans-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health', timeout=2)"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./trans-frontend/app
+      args:
+        VITE_API_BASE_URL: /api/v1
+        VITE_DEMO_MODE: "false"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  gateway:
+    image: nginx:1.28-alpine
+    depends_on:
+      frontend:
+        condition: service_healthy
+      trans-api:
+        condition: service_healthy
+    volumes:
+      - ./infra/nginx/conf.d/at.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "127.0.0.1:${AT_PORT:-8088}:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  minio-data:
+  ollama-data:

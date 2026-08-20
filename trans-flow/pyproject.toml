@@ -9,30 +9,11 @@ description = "Local LLM translation workflows and agents"
 readme = "README.md"
 requires-python = ">=3.12,<3.14"
 dependencies = [
-    "accelerate",
     "fastapi",
-    "huggingface-hub",
     "httpx",
-    "langchain",
-    "langchain-community",
-    "langchain-ollama",
-    "langgraph",
-    "lingua-language-detector",
     "ollama",
     "pydantic-settings",
-    "sacrebleu",
-    "safetensors",
-    "sentence-splitter",
-    "sentencepiece",
-    "torch",
-    "transformers",
     "uvicorn[standard]",
-]
-
-[project.optional-dependencies]
-llama-cpp = ["llama-cpp-python"]
-quantization = [
-    "bitsandbytes; platform_system == 'Linux' and platform_machine == 'x86_64'",
 ]
 
 [dependency-groups]

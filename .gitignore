@@ -31,3 +31,4 @@ data/
 models/
 output/
 *.pdf
+.e2e-work/

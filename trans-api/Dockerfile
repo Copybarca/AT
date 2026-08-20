@@ -16,6 +16,10 @@ RUN ./mvnw --no-transfer-progress -DskipTests package
 
 FROM eclipse-temurin:21-jre-jammy AS runtime
 
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y curl \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN groupadd --system spring \
     && useradd --system --gid spring --home-dir /app spring
 
