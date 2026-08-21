@@ -5,6 +5,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.copybarca.transapi.dto.extraction.ExtractionCompleteRequest;
+import io.copybarca.transapi.dto.extraction.ExtractionFailedRequest;
+import io.copybarca.transapi.model.ProcessStatus;
 import io.copybarca.transapi.model.PdfExtractionProcess;
 import io.copybarca.transapi.repo.BookRepository;
 import io.copybarca.transapi.repo.InsertionRepository;
@@ -116,5 +118,14 @@ class ExtractionResultServiceTest {
                 3
         );
         verify(process).complete();
+    }
+
+    @Test
+    void marksInProgressExtractionAsFailed() {
+        when(process.getStatus()).thenReturn(ProcessStatus.IN_PROGRESS);
+
+        service.fail(42L, new ExtractionFailedRequest(91L));
+
+        verify(process).fail();
     }
 }

@@ -5,7 +5,7 @@ import pymupdf
 from PIL import Image
 
 from pdf_extractor.extractor import PdfExtractionService
-from pdf_extractor.figures import FigureExtractor
+from pdf_extractor.figures import FigureExtractor, _opaque_png
 from pdf_extractor.models import (
     BoundingBox,
     ElementStyle,
@@ -173,3 +173,18 @@ def test_figure_extractor_attaches_regions_from_injected_ocr(tmp_path: Path) -> 
     assert [region.text for region in extracted.regions] == ["Diagram label"]
     assert extracted.regions[0].image_stable_key == extracted.stable_key
     assert extracted.regions[0].stable_key == "P0001-F001-R001"
+
+
+def test_opaque_png_removes_alpha_channel() -> None:
+    transparent = pymupdf.Pixmap(
+        pymupdf.csRGB,
+        pymupdf.IRect(0, 0, 2, 2),
+        True,
+    )
+    transparent.clear_with(128)
+
+    content = _opaque_png(transparent)
+
+    with Image.open(BytesIO(content)) as image:
+        assert image.format == "PNG"
+        assert image.mode == "RGB"

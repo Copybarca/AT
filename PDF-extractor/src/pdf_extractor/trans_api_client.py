@@ -8,6 +8,7 @@ import httpx
 from pdf_extractor.models import (
     BoundingBox,
     ExtractedSegment,
+    ExtractionCommand,
     ExtractionResult,
     ImageTextRegion,
 )
@@ -100,6 +101,18 @@ class TransApiExtractionClient:
                 "expectedImageCount": result.expected_image_count,
                 "expectedRegionCount": result.expected_region_count,
             },
+        )
+        response.raise_for_status()
+
+    async def fail(self, command: ExtractionCommand) -> None:
+        response = await self._http.post(
+            f"{self._base_url}/internal/v1/books/{command.book_id}"
+            "/extraction/failed",
+            headers={
+                "Authorization": f"Bearer {self._token}",
+                "Idempotency-Key": f"extraction-{command.process_id}",
+            },
+            json={"processId": command.process_id},
         )
         response.raise_for_status()
 

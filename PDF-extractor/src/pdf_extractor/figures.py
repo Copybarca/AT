@@ -23,8 +23,7 @@ class FigureExtractor:
             if xref in seen_xrefs:
                 continue
             seen_xrefs.add(xref)
-            extracted = document.extract_image(xref)
-            extension = str(extracted.get("ext", "bin")).lower()
+            content, extension = _extract_image_without_transparency(document, xref)
             media_type = {
                 "png": "image/png",
                 "jpg": "image/jpeg",
@@ -32,7 +31,6 @@ class FigureExtractor:
             }.get(extension, f"image/{extension}")
             rectangles = page.get_image_rects(xref)
             rectangle = rectangles[0] if rectangles else pymupdf.Rect(0, 0, 0, 0)
-            content = bytes(extracted["image"])
             stable_key = f"P{physical_page:04d}-F{figure_number:03d}"
             regions = (
                 self._image_ocr.extract_image(
@@ -61,3 +59,27 @@ class FigureExtractor:
                 )
             )
         return tuple(images)
+
+
+def _extract_image_without_transparency(
+    document: pymupdf.Document,
+    xref: int,
+) -> tuple[bytes, str]:
+    pixmap = pymupdf.Pixmap(document, xref)
+    if pixmap.alpha:
+        return _opaque_png(pixmap), "png"
+
+    extracted = document.extract_image(xref)
+    return bytes(extracted["image"]), str(extracted.get("ext", "bin")).lower()
+
+
+def _opaque_png(pixmap: pymupdf.Pixmap) -> bytes:
+    if pixmap.colorspace is None:
+        raise ValueError("Transparent image does not have a color space")
+    converted = (
+        pymupdf.Pixmap(pymupdf.csRGB, pixmap)
+        if pixmap.colorspace.n > 3
+        else pixmap
+    )
+    opaque = pymupdf.Pixmap(converted, 0)
+    return opaque.tobytes("png")

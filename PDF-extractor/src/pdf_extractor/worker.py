@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import shutil
 from pathlib import Path
 
 from pdf_extractor.extractor import PdfExtractionService
 from pdf_extractor.queue import ExtractionJob
 from pdf_extractor.trans_api_client import TransApiExtractionClient
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class ExtractionWorker:
@@ -27,6 +30,17 @@ class ExtractionWorker:
                 job.fragmentation,
             )
             await self._client.publish(result)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            try:
+                await self._client.fail(job.command)
+            except Exception:
+                _LOGGER.exception(
+                    "Could not report extraction failure",
+                    extra={"processId": job.command.process_id},
+                )
+            raise
         finally:
             await asyncio.to_thread(_remove_job_directory, job.temp_directory)
 

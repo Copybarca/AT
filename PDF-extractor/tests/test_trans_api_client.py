@@ -1,4 +1,6 @@
 
+import json
+
 import httpx
 import pytest
 
@@ -77,3 +79,26 @@ async def test_client_never_sends_complete_after_failed_batch() -> None:
 
     assert paths == ["/internal/v1/books/42/extraction/segments:batch"]
     assert all(not path.endswith("/complete") for path in paths)
+
+
+@pytest.mark.asyncio
+async def test_client_reports_failed_extraction() -> None:
+    requests: list[httpx.Request] = []
+
+    async def transport(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(204)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as http:
+        client = TransApiExtractionClient(
+            base_url="http://trans-api.local",
+            service_token="secret",
+            batch_size=100,
+            http_client=http,
+        )
+        await client.fail(result().command)
+
+    [request] = requests
+    assert request.url.path == "/internal/v1/books/42/extraction/failed"
+    assert request.headers["Authorization"] == "Bearer secret"
+    assert json.loads(request.content) == {"processId": 9}

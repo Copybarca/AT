@@ -1,6 +1,7 @@
 package io.copybarca.transapi.controller;
 
 import io.copybarca.transapi.dto.extraction.ExtractionCompleteRequest;
+import io.copybarca.transapi.dto.extraction.ExtractionFailedRequest;
 import io.copybarca.transapi.dto.extraction.ExtractionImageRequest;
 import io.copybarca.transapi.dto.extraction.ExtractionRegionBatchRequest;
 import io.copybarca.transapi.dto.extraction.ExtractionSegmentBatchRequest;
@@ -83,6 +84,18 @@ public class InternalExtractionController {
     ) {
         authorizer.require(authorization);
         service.complete(bookId, request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/failed")
+    public ResponseEntity<Void> fail(
+            @PathVariable Long bookId,
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false)
+            String authorization,
+            @Valid @RequestBody ExtractionFailedRequest request
+    ) {
+        authorizer.require(authorization);
+        service.fail(bookId, request);
         return ResponseEntity.noContent().build();
     }
 }

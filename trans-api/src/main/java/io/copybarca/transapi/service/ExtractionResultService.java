@@ -1,6 +1,7 @@
 package io.copybarca.transapi.service;
 
 import io.copybarca.transapi.dto.extraction.ExtractionCompleteRequest;
+import io.copybarca.transapi.dto.extraction.ExtractionFailedRequest;
 import io.copybarca.transapi.dto.extraction.ExtractionImageRequest;
 import io.copybarca.transapi.dto.extraction.ExtractionRegionBatchRequest;
 import io.copybarca.transapi.dto.extraction.ExtractionRegionData;
@@ -10,6 +11,7 @@ import io.copybarca.transapi.model.Book;
 import io.copybarca.transapi.model.Insertion;
 import io.copybarca.transapi.model.InsertionTextRegion;
 import io.copybarca.transapi.model.PdfExtractionProcess;
+import io.copybarca.transapi.model.ProcessStatus;
 import io.copybarca.transapi.model.Segment;
 import io.copybarca.transapi.model.TextSegment;
 import io.copybarca.transapi.repo.BookRepository;
@@ -176,6 +178,14 @@ public class ExtractionResultService {
         events.publishEvent(
                 new ExtractionCompletedEvent(process.getId(), bookId)
         );
+    }
+
+    @Transactional
+    public void fail(Long bookId, ExtractionFailedRequest request) {
+        PdfExtractionProcess process = requireProcess(bookId, request.processId());
+        if (process.getStatus() == ProcessStatus.IN_PROGRESS) {
+            process.fail();
+        }
     }
 
     private PdfExtractionProcess requireProcess(Long bookId, Long processId) {
